@@ -408,3 +408,26 @@ export async function getRelated(shikimoriId: number): Promise<RelatedAnime[]> {
   relatedCache.set(shikimoriId, { data, fetchedAt: Date.now() });
   return data;
 }
+
+// ========== «Что посмотреть»: случайный тайтл из топа ==========
+
+export async function pickRandom(userId?: string) {
+  let excludeIds: string | undefined;
+  if (userId) {
+    const rows = await db
+      .select({ shikimoriId: animeTable.shikimoriId })
+      .from(watchItems)
+      .where(eq(watchItems.userId, userId));
+    if (rows.length > 0) excludeIds = rows.map((r) => r.shikimoriId).join(',');
+  }
+
+  const items = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', {
+    order: 'ranked',
+    status: 'released',
+    kind: 'tv',
+    limit: 50,
+    exclude_ids: excludeIds,
+  });
+  if (items.length === 0) throw new HttpError(404, 'Nothing to pick');
+  return normalizeAnime(items[Math.floor(Math.random() * items.length)]);
+}

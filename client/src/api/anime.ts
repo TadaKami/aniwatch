@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { AnimeDetailsResponse, GenreDto, SearchResponse, RelatedAnime } from '../types/dto';
+import type { AnimeDetailsResponse, GenreDto, SearchResponse, RelatedAnime, NormalizedAnime } from '../types/dto';
 
 export interface SearchParams {
     query?: string;
@@ -17,4 +17,5 @@ export const animeApi = {
     genres: () => api.get<{ genres: GenreDto[] }>('/anime/genres'),
     details: (id: number) => api.get<AnimeDetailsResponse>(`/anime/${id}`),
     related: (id: number) => api.get<RelatedAnime[]>(`/anime/${id}/related`),
+    pick: () => api.get<NormalizedAnime>('/anime/pick'),
 };

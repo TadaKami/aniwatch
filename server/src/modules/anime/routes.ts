@@ -50,6 +50,14 @@ animeRouter.get(
   })
 );
 
+animeRouter.get(
+  '/pick',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    res.json(await service.pickRandom((req as AuthRequest).userId));
+  })
+);
+
 // ВАЖНО: после /genres, иначе "genres" поймается как :id
 animeRouter.get(
   '/:id',

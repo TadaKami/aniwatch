@@ -352,3 +352,12 @@ img { max-width: 100%; display: block; }
 .watching-row__info { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .watching-row__title { font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .watching-row__count { color: var(--color-text-muted); font-size: .85rem; }
+
+/* ============ Что посмотреть ============ */
+.pick { display: flex; flex-direction: column; gap: 12px; }
+.pick__hint { color: var(--color-text-muted); font-size: .9rem; }
+.pick__card { display: flex; gap: 20px; flex-wrap: wrap; }
+.pick__cover { width: 180px; aspect-ratio: 3/4; object-fit: cover; border-radius: var(--radius-md); }
+.pick__info { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 240px; }
+.pick__desc { color: var(--color-text-muted); font-size: .9rem; line-height: 1.5; }
+.pick__actions { display: flex; gap: 8px; }

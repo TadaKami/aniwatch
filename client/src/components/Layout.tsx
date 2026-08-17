@@ -10,6 +10,7 @@ export function Layout(){
                 <nav className="header__nav">
                     <NavLink to="/profile">Профиль</NavLink>
                     <NavLink to="/search">Поиск</NavLink>
+                    <NavLink to="/pick">Что посмотреть</NavLink>
                     {user && <NavLink to="/watchlist">Мои списки</NavLink>}
                 </nav>
                 <div className="header__auth">

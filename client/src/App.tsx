@@ -7,6 +7,7 @@ import { SearchPage } from './pages/SearchPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { WatchlistPage } from './pages/WatchlistPage';
 import { AnimeDetailPage } from './pages/AnimeDetailPage';
+import { PickPage } from './pages/PickPage';
 
 
 
@@ -22,6 +23,7 @@ export default function App(){
           <Route path="/anime/:id" element={<AnimeDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/pick" element={<PickPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
 
