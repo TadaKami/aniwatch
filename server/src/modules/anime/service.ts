@@ -421,6 +421,7 @@ export async function pickRandom(userId?: string) {
     const rows = await db
       .select({ shikimoriId: animeTable.shikimoriId })
       .from(watchItems)
+      .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
       .where(eq(watchItems.userId, userId));
     if (rows.length > 0) excludeIds = rows.map((r) => r.shikimoriId).join(',');
   }

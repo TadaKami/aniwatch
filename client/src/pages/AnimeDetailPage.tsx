@@ -70,6 +70,11 @@ export function AnimeDetailPage(){
 
     function Recommendations({ anime }: { anime: NormalizedAnime }) {
         const [recs, setRecs] = useState<NormalizedAnime[]>([]);
+        const KIND_MAP: Record<string, string> = {
+            tv: 'tv', tv_13: 'tv', tv_24: 'tv', movie: 'movie',
+            ova: 'ova', ona: 'ona', special: 'special', tv_special: 'special', music: 'music',
+        };
+        const baseKind = KIND_MAP[anime.kind ?? ''];        
 
         useEffect(() => {
             const ids = anime.genres.slice(0, 3).map((g) => g.id);
@@ -82,8 +87,8 @@ export function AnimeDetailPage(){
                     { genres: ids.slice(0, 2), perPage: 12 },
                     { genres: ids.slice(0, 1), perPage: 12 },
                 ] : []),
-                { kind: anime.kind ?? 'tv', year: anime.seasonYear ?? undefined, perPage: 12 },
-                { kind: anime.kind ?? 'tv', perPage: 12 },
+                { kind: baseKind, year: anime.seasonYear ?? undefined, perPage: 12 },
+                { kind: baseKind, perPage: 12 },
             ];
             let best: NormalizedAnime[] = [];
             for (const t of tries) {
