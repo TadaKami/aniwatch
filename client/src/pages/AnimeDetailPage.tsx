@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { animeApi } from '../api/anime';
+import { animeApi, type SearchParams } from '../api/anime';
 import { api, ApiError } from '../api/client';
 import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
@@ -73,18 +73,26 @@ export function AnimeDetailPage(){
 
         useEffect(() => {
             const ids = anime.genres.slice(0, 3).map((g) => g.id);
-            if (ids.length === 0) return;
+
             let cancelled = false;
             (async () => {
-                for (const pick of [ids, ids.slice(0, 2), ids.slice(0, 1)]) {
-                    if (pick.length === 0) continue;
-                    const r = await animeApi.search({ genres: pick, perPage: 12 });
-                    const list = r.media.filter((m) => m.id !== anime.id);
-                    if (list.length >= 4 || pick.length === 1) {
-                        if (!cancelled) setRecs(list.slice(0, 10));
-                        return;
-                    }
-                }
+            const tries: SearchParams[] = [
+                ...(ids.length ? [
+                    { genres: ids, perPage: 12 },
+                    { genres: ids.slice(0, 2), perPage: 12 },
+                    { genres: ids.slice(0, 1), perPage: 12 },
+                ] : []),
+                { kind: anime.kind ?? 'tv', year: anime.seasonYear ?? undefined, perPage: 12 },
+                { kind: anime.kind ?? 'tv', perPage: 12 },
+            ];
+            let best: NormalizedAnime[] = [];
+            for (const t of tries) {
+                const r = await animeApi.search(t);
+                const list = r.media.filter((m) => m.id !== anime.id);
+                if (list.length > best.length) best = list;
+                if (list.length >= 4) break;
+            }
+            if (!cancelled) setRecs(best.slice(0, 10));                
             })().catch(() => {});
             return () => { cancelled = true; };
         }, [anime.id]);

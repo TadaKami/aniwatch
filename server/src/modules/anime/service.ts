@@ -368,6 +368,41 @@ export async function getRelated(shikimoriId: number): Promise<RelatedAnime[]> {
       console.error('[SHIKIMORI] related rest failed:', (e as Error).message);
     }
   }
+  
+  // 3) Фолбэк: префиксный поиск по базовому названию (сезоны/фильмы делят префикс)
+  if (data.length === 0) {
+    try {
+      const details = await shikimoriGet<ShikimoriAnimeDetails>(`/animes/${shikimoriId}`);
+      const clean = (details.name ?? '')
+        .replace(/\s*(\d+(st|nd|rd|th)?\s*Season|Season\s*\d+|Movie|The\s*Movie)\s*$/i, '')
+        .replace(/\s*\d+$/, '')
+        .trim();
+      const bases = new Set<string>();
+      if (clean.length >= 3) bases.add(clean);
+      if (clean.includes(':')) bases.add(clean.split(':')[0].trim());
+
+      const seen = new Set<number>();
+      for (const base of bases) {
+        const list = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', { search: base, limit: 50 });
+        for (const a of list) {
+          if (!a.name.toLowerCase().startsWith(base.toLowerCase())) continue;
+          if (seen.has(a.id)) continue;
+          seen.add(a.id);
+          data.push({
+            id: a.id,
+            name: a.name,
+            russian: a.russian ?? null,
+            kind: a.kind ?? null,
+            airedOn: a.aired_on ?? null,
+            image: { preview: absImg(a.image.preview), original: absImg(a.image.original) },
+          });
+        }
+      }
+      console.log(`[SHIKIMORI] related via name search: ${data.length}`);
+    } catch (e) {
+      console.error('[SHIKIMORI] related name search failed:', (e as Error).message);
+    }
+  }
 
   data.sort((a, b) => (a.airedOn ?? '9999').localeCompare(b.airedOn ?? '9999'));
   relatedCache.set(shikimoriId, { data, fetchedAt: Date.now() });
