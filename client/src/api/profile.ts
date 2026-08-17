@@ -7,4 +7,6 @@ export const profileApi = {
     get: () => api.get<Profile>('/profile'),
     update: (body: { name?: string; email?: string; avatar?: string | null }) =>
         api.patch<PublicUser>('/profile', body),
+    changePassword: (body: { currentPassword: string; newPassword: string }) =>
+        api.patch<{ ok: true }>('/profile/password', body),    
 };

@@ -15,6 +15,13 @@ profileRouter.get(
 );
 
 profileRouter.patch(
+  '/password',
+  asyncHandler(async (req, res) => {
+    res.json(await service.changePassword((req as AuthRequest).userId!, req.body));
+  })
+);
+
+profileRouter.patch(
   '/',
   asyncHandler(async (req, res) => {
     res.json(await service.updateProfile((req as AuthRequest).userId!, req.body));

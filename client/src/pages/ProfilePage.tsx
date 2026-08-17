@@ -36,6 +36,11 @@ export function ProfilePage() {
     const [msg, setMsg] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
     const [since, setSince] = useState<string | null>(null);
+    const [curPass, setCurPass] = useState('');
+    const [newPass, setNewPass] = useState('');
+    const [repPass, setRepPass] = useState('');
+    const [passMsg, setPassMsg] = useState<string | null>(null);
+    const [passErr, setPassErr] = useState<string | null>(null);    
 
     useEffect(() => {
         // подтягиваем свежий профиль (аватар мог поменяться в другой сессии)
@@ -69,6 +74,18 @@ export function ProfilePage() {
             setError(e instanceof ApiError ? e.message : 'Ошибка сохранения');
         }
     }
+    async function changePassword() {
+        setPassErr(null);
+        setPassMsg(null);
+        if (newPass !== repPass) { setPassErr('Пароли не совпадают'); return; }
+        try {
+            await profileApi.changePassword({ currentPassword: curPass, newPassword: newPass });
+            setCurPass(''); setNewPass(''); setRepPass('');
+            setPassMsg('Пароль обновлён ✓');
+        } catch (e) {
+            setPassErr(e instanceof ApiError ? e.message : 'Ошибка смены пароля');
+        }
+    }    
 
     return (
         <div className="profile">
@@ -78,33 +95,29 @@ export function ProfilePage() {
             </div>
 
             {tab === 'profile' ? (
-                <div className="profile__body card">
-                    <div className="profile__avatar-wrap">
-                        {avatar
-                            ? <img className="profile__avatar" src={avatar} alt="" />
-                            : <div className="profile__avatar profile__avatar--empty">{(name || '?').slice(0, 1).toUpperCase()}</div>}
-                        <div className="profile__avatar-btns">
-                            <button className="btn-ghost" onClick={() => fileRef.current?.click()}>Загрузить фото</button>
-                            {avatar && <button className="btn-ghost" onClick={() => setAvatar(null)}>Убрать</button>}
-                        </div>
-                        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+                <>
+                    <div className="profile__body card">
+                        <h3>Смена пароля</h3>
+                        <label>Текущий пароль
+                            <input type="password" value={curPass} autoComplete="current-password"
+                                onChange={(e) => setCurPass(e.target.value)} />
+                        </label>
+                        <label>Новый пароль
+                            <input type="password" value={newPass} autoComplete="new-password" minLength={6}
+                                onChange={(e) => setNewPass(e.target.value)} />
+                        </label>
+                        <label>Повторите новый пароль
+                            <input type="password" value={repPass} autoComplete="new-password"
+                                onChange={(e) => setRepPass(e.target.value)} />
+                        </label>
+                        {passErr && <div className="form-error">{passErr}</div>}
+                        {passMsg && <div className="profile__ok">{passMsg}</div>}
+                        <button className="btn-accent" disabled={!curPass || !newPass} onClick={changePassword}>
+                            Обновить пароль
+                        </button>
                     </div>
-
-                    <label>Имя
-                        <input value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={50} />
-                    </label>
-                    <label>Email
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </label>
-                    {since && (
-                        <div className="profile__since">
-                            Вы с нами с {new Date(since).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </div>
-                    )}                    
-                    {error && <div className="form-error">{error}</div>}
-                    {msg && <div className="profile__ok">{msg}</div>}
-                    <button className="btn-accent" onClick={save}>Сохранить</button>
-                </div>
+                </>
+                
             ) : (
                 <StatsPanel />
             )}
