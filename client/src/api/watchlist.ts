@@ -16,5 +16,5 @@ export const watchlistApi = {
     addProgress: (body: ProgressBody) =>
         api.post<{ ok: true; created: boolean }>('/watchlist/progress', body),
     removeProgress: (body: ProgressBody) =>
-        api.delete<{ ok: true }>('/watchlist/progress'),
+        api.delete<{ ok: true }>('/watchlist/progress', body),
 };
