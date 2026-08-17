@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
+import { getRelated, type RelatedAnime } from '../anime/service.js';
 
 export interface GenreStat {
   genre: string;
@@ -133,4 +134,59 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
       aired: w.aired || w.episodes || 0,
     })),
   };
+}
+
+// ========== «Что дальше»: непросмотренные сиквелы/онгоинги ==========
+
+export interface NextItem extends RelatedAnime {
+  sourceTitle: string;
+  inListStatus: string | null;
+}
+
+const nextCache = new Map<string, { data: NextItem[]; fetchedAt: number }>();
+const NEXT_TTL_MS = 5 * 60 * 1000;
+
+export async function getNext(userId: string): Promise<NextItem[]> {
+  const cached = nextCache.get(userId);
+  if (cached && Date.now() - cached.fetchedAt < NEXT_TTL_MS) return cached.data;
+
+  const watchedRows = await db
+    .select({ shikimoriId: animeTable.shikimoriId, russian: animeTable.russian, name: animeTable.name })
+    .from(watchItems)
+    .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
+    .where(and(eq(watchItems.userId, userId), eq(watchItems.status, 'WATCHED')))
+    .orderBy(desc(watchItems.updatedAt))
+    .limit(20);
+
+  const listRows = await db
+    .select({ shikimoriId: animeTable.shikimoriId, status: watchItems.status })
+    .from(watchItems)
+    .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
+    .where(eq(watchItems.userId, userId));
+  const statusByShikimori = new Map(listRows.map((r) => [r.shikimoriId, r.status]));
+
+  const out: NextItem[] = [];
+  const seen = new Set<number>();
+  for (const w of watchedRows) {
+    let related: RelatedAnime[] = [];
+    try {
+      related = await getRelated(w.shikimoriId);
+    } catch {
+      continue;
+    }
+    for (const r of related) {
+      if (r.id === w.shikimoriId || seen.has(r.id)) continue;
+      const inList = statusByShikimori.get(r.id) ?? null;
+      if (inList === 'WATCHED') continue; // уже просмотрено
+      seen.add(r.id);
+      out.push({ ...r, sourceTitle: w.russian ?? w.name, inListStatus: inList });
+    }
+  }
+
+  // онгоинги и анонсы — сверху, затем вышедшие по новизне
+  const rank = (s: string | null) => (s === 'ongoing' ? 0 : s === 'anons' ? 1 : 2);
+  out.sort((a, b) => rank(a.status) - rank(b.status) || (b.airedOn ?? '').localeCompare(a.airedOn ?? ''));
+
+  nextCache.set(userId, { data: out, fetchedAt: Date.now() });
+  return out;
 }

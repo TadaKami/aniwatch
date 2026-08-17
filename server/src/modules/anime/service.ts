@@ -263,6 +263,7 @@ export interface RelatedAnime {
   name: string;
   russian: string | null;
   kind: string | null;
+  status: string | null;
   airedOn: string | null;
   image: { preview: string; original: string } | null;
 }
@@ -272,6 +273,7 @@ type FranchiseNode = {
   name?: string | null;
   russian?: string | null;
   kind?: string | null;
+  status?: string | null;
   airedOn?: string | null;
   aired_on?: string | null;
   image?: { preview?: string; original?: string } | null;
@@ -289,6 +291,7 @@ function mapNode(n: FranchiseNode): RelatedAnime {
     name: n.name ?? '',
     russian: n.russian ?? null,
     kind: n.kind ?? null,
+    status: n.status ?? null,
     airedOn: n.airedOn ?? n.aired_on ?? null,
     image: n.image?.preview
       ? { preview: absImg(n.image.preview), original: absImg(n.image.original ?? n.image.preview) }
@@ -393,6 +396,7 @@ export async function getRelated(shikimoriId: number): Promise<RelatedAnime[]> {
             name: a.name,
             russian: a.russian ?? null,
             kind: a.kind ?? null,
+            status: a.status ?? null,
             airedOn: a.aired_on ?? null,
             image: { preview: absImg(a.image.preview), original: absImg(a.image.original) },
           });

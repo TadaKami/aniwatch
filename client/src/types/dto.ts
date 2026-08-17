@@ -122,3 +122,15 @@ export interface StatsOverview {
         aired: number;
     }[];
 }
+
+export interface NextItem {
+    id: number;
+    name: string;
+    russian: string | null;
+    kind: string | null;
+    status: string | null;
+    airedOn: string | null;
+    image: { preview: string; original: string } | null;
+    sourceTitle: string;
+    inListStatus: WatchStatus | null;
+}
