@@ -1,5 +1,5 @@
+// @ts-ignore — бандл генерируется на этапе билда Vercel
+import bundle from './server-bundle.cjs';
 
-export default async function handler(req: any, res: any) {
-  const { app } = await import('../server/src/app.js');
-  return app(req, res);
-}
+const b = bundle as { app?: unknown; default?: unknown };
+export default (b.app ?? b.default) as never;
