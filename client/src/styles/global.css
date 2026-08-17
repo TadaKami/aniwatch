@@ -331,3 +331,24 @@ img { max-width: 100%; display: block; }
     background: var(--color-bg-elevated); color: var(--color-text); font: inherit;
 }
 .profile__ok { color: var(--color-success); font-size: .9rem; }
+
+/* ============ Профиль: обзор ============ */
+.profile__since { color: var(--color-text-muted); font-size: .85rem; }
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.stat-card {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 14px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+.stat-card b { font-size: 1.4rem; }
+.stat-card span { color: var(--color-text-muted); font-size: .85rem; }
+.activity { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: 12px; }
+.act-col { flex: 1; display: flex; align-items: flex-end; height: 100%; }
+.act-bar { width: 100%; min-height: 4px; border-radius: 3px; background: linear-gradient(180deg, var(--color-accent), #a855f7); }
+.watching { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.watching-row { display: flex; align-items: center; gap: 12px; }
+.watching-row:hover .watching-row__title { color: var(--color-accent); }
+.watching-row__cover { width: 42px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); }
+.watching-row__info { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.watching-row__title { font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.watching-row__count { color: var(--color-text-muted); font-size: .85rem; }

@@ -109,3 +109,16 @@ export interface RelatedAnime {
     airedOn: string | null;
     image: { preview: string; original: string } | null;
 }
+
+export interface StatsOverview {
+    totals: { totalTitles: number; watchedTitles: number; watchingTitles: number; episodesWatched: number };
+    activity: { weekStart: string; count: number }[];
+    watching: {
+        shikimoriId: number;
+        russian: string | null;
+        name: string;
+        coverImage: string | null;
+        watched: number;
+        aired: number;
+    }[];
+}

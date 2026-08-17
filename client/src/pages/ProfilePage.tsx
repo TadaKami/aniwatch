@@ -35,10 +35,11 @@ export function ProfilePage() {
     const [error, setError] = useState<string | null>(null);
     const [msg, setMsg] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
+    const [since, setSince] = useState<string | null>(null);
 
     useEffect(() => {
         // подтягиваем свежий профиль (аватар мог поменяться в другой сессии)
-        if (user) profileApi.get().then(updateUser).catch(() => {});
+        if (user) profileApi.get().then((p) => { updateUser(p); setSince(p.createdAt); }).catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -95,7 +96,11 @@ export function ProfilePage() {
                     <label>Email
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                     </label>
-
+                    {since && (
+                        <div className="profile__since">
+                            Вы с нами с {new Date(since).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </div>
+                    )}                    
                     {error && <div className="form-error">{error}</div>}
                     {msg && <div className="profile__ok">{msg}</div>}
                     <button className="btn-accent" onClick={save}>Сохранить</button>
