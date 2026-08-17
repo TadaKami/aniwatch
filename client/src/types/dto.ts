@@ -99,3 +99,12 @@ export interface AnimeDetailsResponse {
         { id: string; status: WatchStatus; note: string | null } | null; 
     progress: { seasonNumber: number; episodeNumber: number }[] 
 }
+
+export interface RelatedAnime {
+    id: number;
+    name: string;
+    russian: string | null;
+    kind: string | null;
+    airedOn: string | null;
+    image: { preview: string; original: string } | null;
+}

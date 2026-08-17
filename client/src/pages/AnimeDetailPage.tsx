@@ -4,7 +4,7 @@ import { animeApi } from '../api/anime';
 import { api, ApiError } from '../api/client';
 import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
-import type { AnimeDetailsResponse, WatchStatus } from '../types/dto';
+import type { AnimeDetailsResponse, WatchStatus, NormalizedAnime, RelatedAnime } from '../types/dto';
 
 const STATUS_LABELS: Record<WatchStatus, string> = {
     WANT_TO_WATCH: 'Буду смотреть',
@@ -68,6 +68,83 @@ export function AnimeDetailPage(){
         await refresh();
     }
 
+    function Recommendations({ anime }: { anime: NormalizedAnime }) {
+        const [recs, setRecs] = useState<NormalizedAnime[]>([]);
+
+        useEffect(() => {
+            const ids = anime.genres.slice(0, 3).map((g) => g.id);
+            if (ids.length === 0) return;
+            let cancelled = false;
+            (async () => {
+                for (const pick of [ids, ids.slice(0, 2), ids.slice(0, 1)]) {
+                    if (pick.length === 0) continue;
+                    const r = await animeApi.search({ genres: pick, perPage: 12 });
+                    const list = r.media.filter((m) => m.id !== anime.id);
+                    if (list.length >= 4 || pick.length === 1) {
+                        if (!cancelled) setRecs(list.slice(0, 10));
+                        return;
+                    }
+                }
+            })().catch(() => {});
+            return () => { cancelled = true; };
+        }, [anime.id]);
+
+        if (recs.length === 0) return null;
+        return (
+            <div className="card">
+                <h3>Похожее по жанрам</h3>
+                <div className="recs-row">
+                    {recs.map((r) => (
+                        <Link key={r.id} to={`/anime/${r.id}`} className="rec-card">
+                            <img className="rec-card__cover" src={r.image.preview} alt="" loading="lazy" />
+                            <div className="rec-card__title">{r.russian ?? r.name}</div>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    const KIND_RU: Record<string, string> = {
+        tv: 'ТВ', movie: 'Фильм', ova: 'OVA', ona: 'ONA', special: 'Спешл', music: 'Клип',
+    };
+
+    function FranchiseBlock({ currentId }: { currentId: number }) {
+        const navigate = useNavigate();
+        const [items, setItems] = useState<RelatedAnime[]>([]);
+        const [open, setOpen] = useState(false);
+
+        useEffect(() => {
+            animeApi.related(currentId)
+                .then((list) => setItems(list.filter((i) => i.id !== currentId)))
+                .catch(() => setItems([]));
+        }, [currentId]);
+
+        if (items.length === 0) return null;
+
+        return (
+            <div className="card">
+                <button className="btn-accent" onClick={() => setOpen((v) => !v)}>
+                    {open ? 'Скрыть сезоны и фильмы' : `Сезоны и фильмы (${items.length})`}
+                </button>
+                {open && (
+                    <div className="franchise-list">
+                        {items.map((it) => (
+                            <button key={it.id} className="franchise-row" onClick={() => navigate(`/anime/${it.id}`)}>
+                                <span className="franchise-row__year">
+                                    {it.airedOn ? new Date(it.airedOn).getUTCFullYear() : '—'}
+                                </span>
+                                <span className="franchise-row__kind">
+                                    {KIND_RU[it.kind ?? ''] ?? it.kind ?? '—'}
+                                </span>
+                                <span className="franchise-row__title">{it.russian ?? it.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }    
+
     return (
         <div className="detail">
             <button className="btn-ghost" onClick={()=>navigate(-1)}>← Назад</button>
@@ -111,6 +188,8 @@ export function AnimeDetailPage(){
                             dangerouslySetInnerHTML={{ __html: data.anime.descriptionHtml }}
                         />
                     )}
+                    <Recommendations anime={data.anime} />
+                    <FranchiseBlock currentId={data.anime.id} />
                     {data.airedEpisodeCount > 0 && (
                          <div className="detail__episodes card">
                              <h3>Серии · {data.progress.length}/{data.airedEpisodeCount}</h3>

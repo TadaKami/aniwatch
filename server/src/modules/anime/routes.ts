@@ -41,6 +41,14 @@ animeRouter.get(
     res.json(await service.getEpisodes(id));
   })
 );
+animeRouter.get(
+  '/:id/related',
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, 'Invalid anime id');
+    res.json(await service.getRelated(id));
+  })
+);
 
 // ВАЖНО: после /genres, иначе "genres" поймается как :id
 animeRouter.get(

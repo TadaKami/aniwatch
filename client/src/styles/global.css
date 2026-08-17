@@ -249,6 +249,7 @@ img { max-width: 100%; display: block; }
 .bar-row__track { height: 10px; border-radius: 999px; background: var(--color-bg-elevated); overflow: hidden; }
 .bar-row__fill { height: 100%; background: linear-gradient(135deg, var(--color-accent), #a855f7); }
 .bar-row__count { text-align: right; font-size: .85rem; color: var(--color-text-muted); }
+
 /* ============ Мобильная адаптация ============ */
 @media (max-width: 768px) {
     .header { flex-wrap: wrap; gap: 10px 12px; padding: 10px 16px; }
@@ -285,3 +286,22 @@ img { max-width: 100%; display: block; }
 
     .pagination button { padding: 8px 10px; }
 }
+
+/* ============ Рекомендации ============ */
+.recs-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+.rec-card { min-width: 110px; max-width: 110px; }
+.rec-card__cover { width: 110px; aspect-ratio: 3/4; object-fit: cover; border-radius: var(--radius-sm); }
+.rec-card__title { font-size: .8rem; margin-top: 6px; }
+.rec-card:hover .rec-card__title { color: var(--color-accent); }
+
+/* ============ Сезоны и фильмы ============ */
+.franchise-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.franchise-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    background: var(--color-bg-elevated); text-align: left;
+}
+.franchise-row:hover { background: var(--color-border); }
+.franchise-row__year { min-width: 44px; color: var(--color-text-muted); font-size: .85rem; }
+.franchise-row__kind { min-width: 64px; font-size: .8rem; color: var(--color-accent); }
+.franchise-row__title { font-size: .9rem; }

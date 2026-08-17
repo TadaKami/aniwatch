@@ -255,3 +255,121 @@ export async function getEpisodes(shikimoriId: number): Promise<EpisodeInfo[]> {
   episodesCache.set(shikimoriId, { data, fetchedAt: Date.now() });
   return data;
 }
+
+// ========== Сезоны и фильмы (франшиза) ==========
+
+export interface RelatedAnime {
+  id: number;
+  name: string;
+  russian: string | null;
+  kind: string | null;
+  airedOn: string | null;
+  image: { preview: string; original: string } | null;
+}
+
+type FranchiseNode = {
+  id: number | string;
+  name?: string | null;
+  russian?: string | null;
+  kind?: string | null;
+  airedOn?: string | null;
+  aired_on?: string | null;
+  image?: { preview?: string; original?: string } | null;
+};
+
+const relatedCache = new Map<number, { data: RelatedAnime[]; fetchedAt: number }>();
+
+function absImg(path: string): string {
+  return path.startsWith('http') ? path : `${env.SHIKIMORI_ORIGIN}${path}`;
+}
+
+function mapNode(n: FranchiseNode): RelatedAnime {
+  return {
+    id: Number(n.id),
+    name: n.name ?? '',
+    russian: n.russian ?? null,
+    kind: n.kind ?? null,
+    airedOn: n.airedOn ?? n.aired_on ?? null,
+    image: n.image?.preview
+      ? { preview: absImg(n.image.preview), original: absImg(n.image.original ?? n.image.preview) }
+      : null,
+  };
+}
+
+async function graphqlQuery<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  const base = env.SHIKIMORI_API_URL.replace(/\/$/, '');
+  const res = await fetch(`${base}/graphql`, {
+    method: 'POST',
+    headers: { 'User-Agent': SHIKIMORI_UA, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!res.ok) throw new ShikimoriError(res.status, `Shikimori GraphQL error: ${res.status}`);
+  const json = (await res.json()) as { data?: T };
+  if (!json.data) throw new ShikimoriError(502, 'GraphQL: no data');
+  return json.data;
+}
+
+const Q_FRANCHISE = `
+query($id: ID!) {
+  animes(ids: [$id]) {
+    franchise {
+      id
+      name
+      nodes {
+        id
+        name
+        russian
+        kind
+        airedOn
+        image { preview original }
+      }
+    }
+  }
+}`;
+
+function extractFromRest(fr: unknown): RelatedAnime[] {
+  const arr = (x: unknown): FranchiseNode[] => (Array.isArray(x) ? (x as FranchiseNode[]) : []);
+  if (Array.isArray(fr)) return arr(fr).map(mapNode);
+  if (fr && typeof fr === 'object') {
+    const o = fr as Record<string, unknown>;
+    return arr(o.nodes ?? o.animes ?? o.anime).map(mapNode);
+  }
+  return [];
+}
+
+export async function getRelated(shikimoriId: number): Promise<RelatedAnime[]> {
+  const cached = relatedCache.get(shikimoriId);
+  if (cached && Date.now() - cached.fetchedAt < (cached.data.length ? GENRES_TTL_MS : EPISODES_NEGATIVE_TTL)) {
+    return cached.data;
+  }
+
+  let data: RelatedAnime[] = [];
+
+  // 1) GraphQL: франшиза с узлами
+  try {
+    const d = await graphqlQuery<{ animes?: Array<{ franchise?: { nodes?: FranchiseNode[] } | null } | null> }>(
+      Q_FRANCHISE, { id: String(shikimoriId) }
+    );
+    data = (d.animes?.[0]?.franchise?.nodes ?? []).map(mapNode).filter((n) => Number.isFinite(n.id) && n.id > 0);
+    console.log(`[SHIKIMORI] related via graphql: ${data.length}`);
+  } catch (e) {
+    console.error('[SHIKIMORI] related graphql failed:', (e as Error).message);
+  }
+
+  // 2) Фолбэк: REST /franchises/<slug>
+  if (data.length === 0) {
+    try {
+      const details = await shikimoriGet<{ franchise?: string | null }>(`/animes/${shikimoriId}`);
+      if (details.franchise) {
+        data = extractFromRest(await shikimoriGet<unknown>(`/franchises/${details.franchise}`));
+        console.log(`[SHIKIMORI] related via rest: ${data.length}`);
+      }
+    } catch (e) {
+      console.error('[SHIKIMORI] related rest failed:', (e as Error).message);
+    }
+  }
+
+  data.sort((a, b) => (a.airedOn ?? '9999').localeCompare(b.airedOn ?? '9999'));
+  relatedCache.set(shikimoriId, { data, fetchedAt: Date.now() });
+  return data;
+}
