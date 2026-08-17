@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { animeApi } from '../api/anime';
 import { api, ApiError } from '../api/client';
 import { watchlistApi } from '../api/watchlist';
