@@ -1,31 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import type { GenreStat } from '../types/dto';
+import { api } from '../api/client.js';
+import { useAuth } from '../context/AuthContext.js';
+import type { GenreStat } from '../types/dto.js';
 
-export function DashboardPage(){
-    const {user} = useAuth();
-    const [status, setStatus] = useState<GenreStat[]>([]);
+export function StatsPanel() {
+    const { user } = useAuth();
+    const [stats, setStats] = useState<GenreStat[]>([]);
 
-    useEffect(()=>{
+    useEffect(() => {
         if (!user) return;
-        api.get<GenreStat[]>('/stats/genres').then(setStatus).catch(()=> setStatus([]));
+        api.get<GenreStat[]>('/stats/genres').then(setStats).catch(() => setStats([]));
     }, [user]);
 
-    const max = Math.max(1,...status.map((s)=>s.count));
+    const max = Math.max(1, ...stats.map((s) => s.count));
 
     return (
         <div className="dashboard">
-            <h2>Дашборд</h2>
-            {!user &&(
-                <div className="empty"><Link to="/login">Войдите</Link>, чтобы увидеть статистику по жанрам.</div>
-            )}
-            {user && status.length === 0 && (
+            {stats.length === 0 && (
                 <div className="empty">Пока нет просмотренных тайтлов — отметьте что-нибудь как «Просмотрено».</div>
             )}
             <div className="dashboard__bars">
-                {status.map((s)=>(
+                {stats.map((s) => (
                     <div className="bar-row" key={s.genre}>
                         <span className="bar-row__label">{s.genre}</span>
                         <div className="bar-row__track">

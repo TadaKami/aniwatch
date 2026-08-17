@@ -4,10 +4,11 @@ import { env } from './config/env.js';
 import { db } from './db/client.js';
 import { users } from './db/schema.js';
 import { sql } from 'drizzle-orm';
-import {authRouter} from './modules/auth/routes.js';
-import {animeRouter} from './modules/anime/routes.js';
-import {watchlistRouter} from './modules/watchlist/routes.js';
-import {statsRouter} from './modules/stats/routes.js';
+import { authRouter } from './modules/auth/routes.js';
+import { animeRouter } from './modules/anime/routes.js';
+import { watchlistRouter } from './modules/watchlist/routes.js';
+import { statsRouter } from './modules/stats/routes.js';
+import { profileRouter } from './modules/profile/routes.js';
 import {seedTestUser} from './db/seed.js';
 import {HttpError} from './lib/http.js';
 import {NextFunction, Request, Response} from 'express';
@@ -20,6 +21,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/anime', animeRouter);
 app.use('/api/watchlist', watchlistRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/profile', profileRouter);
 
 app.get("/api/health",async (_req, res)=>{
     try{

@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.js';
 
 export function Layout(){
     const { user, logout } = useAuth();
@@ -8,7 +8,7 @@ export function Layout(){
             <header className="header">
                 <Link to="/" className='header__logo'>AnimeWatch</Link>
                 <nav className="header__nav">
-                    <NavLink to="/">Дашборд</NavLink>
+                    <NavLink to="/profile">Профиль</NavLink>
                     <NavLink to="/search">Поиск</NavLink>
                     {user && <NavLink to="/watchlist">Мои списки</NavLink>}
                 </nav>
@@ -16,6 +16,7 @@ export function Layout(){
                     {user?(
                         <>
                             <span className="header__user">{user.name}</span>
+                            {user.avatar && <img src={user.avatar} alt="" className="header__avatar" />}
                             <button className="bth-ghost" onClick={logout}>Выйти</button>
                         </>
                     ): (

@@ -22,10 +22,11 @@ export interface PublicUser{
     id: string;
     email: string;
     name: string;
+    avatar: string | null;
 }
 
 function toPublicUser(u: typeof users.$inferSelect): PublicUser{
-    return {id: u.id, email: u.email, name: u.name};
+    return {id: u.id, email: u.email, name: u.name, avatar: u.avatar};
 }
 
 function signToken(userId: string): string{

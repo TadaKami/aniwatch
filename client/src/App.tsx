@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SearchPage } from './pages/SearchPage';
-import { DashboardPage } from './pages/DashboardPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { WatchlistPage } from './pages/WatchlistPage';
 import { AnimeDetailPage } from './pages/AnimeDetailPage';
 
@@ -15,7 +15,8 @@ export default function App(){
     <AuthProvider>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/profile" replace />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/watchlist" element={<WatchlistPage />} />
           <Route path="/anime/:id" element={<AnimeDetailPage />} />
