@@ -44,19 +44,21 @@ watchlistRouter.delete(
 watchlistRouter.patch(
     '/:id',
     asyncHandler(async (req, res)=>{
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+        const id = String(req.params.id);
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
             throw new HttpError(400, 'Invalid id');
         }        
-        res.json(await service.updateWatchItem(requireUserId(req), req.params.id, req.body));
+        res.json(await service.updateWatchItem(requireUserId(req), id, req.body));
     })
 );
 
 watchlistRouter.delete(
     '/:id',
     asyncHandler(async (req, res) => {
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+        const id = String(req.params.id);
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
             throw new HttpError(400, 'Invalid id');
         }        
-        res.json(await service.removeWatchItem(requireUserId(req), req.params.id));
+        res.json(await service.removeWatchItem(requireUserId(req), id));
     })
 );

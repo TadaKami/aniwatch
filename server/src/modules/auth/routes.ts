@@ -1,6 +1,6 @@
 import {Router} from 'express';
-import {asyncHandler} from '../../lib/http';
-import * as service from './service';
+import {asyncHandler} from '../../lib/http.js';
+import * as service from './service.js';
 
 export const authRouter = Router();
 

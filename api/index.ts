@@ -1,4 +1,5 @@
-import { app } from '../server/src/app.js';
 
-// Vercel Node-функция: express-app как default-экспорт
-export default app;
+export default async function handler(req: any, res: any) {
+  const { app } = await import('../server/src/app.js');
+  return app(req, res);
+}
