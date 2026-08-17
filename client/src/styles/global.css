@@ -295,7 +295,13 @@ img { max-width: 100%; display: block; }
 .rec-card:hover .rec-card__title { color: var(--color-accent); }
 
 /* ============ Сезоны и фильмы ============ */
-.franchise-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.franchise-list {
+    display: flex; flex-direction: column; gap: 6px; margin-top: 12px;
+    max-height: 320px; overflow-y: auto; padding-right: 8px;
+}
+.franchise-list::-webkit-scrollbar { width: 6px; }
+.franchise-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
 .franchise-row {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 10px; border-radius: var(--radius-sm);
