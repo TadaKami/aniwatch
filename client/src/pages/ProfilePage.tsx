@@ -141,6 +141,33 @@ export function ProfilePage() {
             {tab === 'profile' ? (
                 <>
                     <div className="profile__body card">
+                        <div className="profile__avatar-wrap">
+                            {avatar
+                                ? <img className="profile__avatar" src={avatar} alt="" />
+                                : <div className="profile__avatar profile__avatar--empty">{(name || '?').slice(0, 1).toUpperCase()}</div>}
+                            <div className="profile__avatar-btns">
+                                <button className="btn-ghost" onClick={() => fileRef.current?.click()}>Загрузить фото</button>
+                                {avatar && <button className="btn-ghost" onClick={() => setAvatar(null)}>Убрать</button>}
+                            </div>
+                            <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+                        </div>
+
+                        <label>Имя
+                            <input value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={50} />
+                        </label>
+                        <label>Email
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </label>
+                        {since && (
+                            <div className="profile__since">
+                                Вы с нами с {new Date(since).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </div>
+                        )}
+                        {error && <div className="form-error">{error}</div>}
+                        {msg && <div className="profile__ok">{msg}</div>}
+                        <button className="btn-accent" onClick={save}>Сохранить</button>
+                    </div>                
+                    <div className="profile__body card">
                         <h3>Смена пароля</h3>
                         <label>Текущий пароль
                             <input type="password" value={curPass} autoComplete="current-password"
