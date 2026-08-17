@@ -8,18 +8,34 @@ export interface GenreStat {
   count: number;
 }
 
+// Сезоны/фильмы одной франшизы считаем за один тайтл (эвристика по имени)
+function franchiseKey(rawName: string): string {
+  const clean = rawName
+    .replace(/\s*(\d+(st|nd|rd|th)?\s*Season|Season\s*\d+|Movie|The\s*Movie|Part\s*\d+|Film\s*\d+)\s*$/i, '')
+    .replace(/\s*\d+$/, '')
+    .trim();
+  const base = clean.includes(':') ? clean.split(':')[0].trim() : clean;
+  return base.toLowerCase().replace(/[^\p{L}\p{N}]+$/gu, '');
+}
+
 export async function getGenreStats(userId: string): Promise<GenreStat[]> {
   const rows = await db
-    .select({ genres: animeTable.genres })
+    .select({ genres: animeTable.genres, name: animeTable.name })
     .from(watchItems)
     .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
     .where(and(eq(watchItems.userId, userId), eq(watchItems.status, 'WATCHED')));
 
-  const counts = new Map<string, number>();
+  const groups = new Map<string, Set<string>>();
   for (const row of rows) {
-    for (const genre of row.genres ?? []) {
-      counts.set(genre, (counts.get(genre) ?? 0) + 1);
-    }
+    const key = franchiseKey(row.name);
+    const set = groups.get(key) ?? new Set<string>();
+    for (const genre of row.genres ?? []) set.add(genre);
+    groups.set(key, set);
+  }
+
+  const counts = new Map<string, number>();
+  for (const genres of groups.values()) {
+    for (const genre of genres) {counts.set(genre, (counts.get(genre) ?? 0) + 1);    }
   }
 
   return [...counts.entries()]
@@ -56,10 +72,10 @@ function startOfWeekMs(d: Date): number {
 
 export async function getOverview(userId: string): Promise<StatsOverview> {
   const statusRows = await db
-    .select({ status: watchItems.status, count: sql<number>`count(*)::int` })
+    .select({ status: watchItems.status, name: animeTable.name })
     .from(watchItems)
-    .where(eq(watchItems.userId, userId))
-    .groupBy(watchItems.status);
+    .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
+    .where(eq(watchItems.userId, userId));
 
   const [epRow] = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -108,14 +124,20 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
     count: buckets.get(i) ?? 0,
   }));
 
-  let totalTitles = 0;
+  const groupStatuses = new Map<string, Set<string>>();
+  for (const r of statusRows) {
+    const key = franchiseKey(r.name);
+    const set = groupStatuses.get(key) ?? new Set<string>();
+    set.add(r.status);
+    groupStatuses.set(key, set);
+  }
+  const totalTitles = groupStatuses.size;
   let watchedTitles = 0;
   let watchingTitles = 0;
-  for (const r of statusRows) {
-    totalTitles += r.count;
-    if (r.status === 'WATCHED') watchedTitles = r.count;
-    if (r.status === 'WATCHING') watchingTitles = r.count;
-  }
+  for (const s of groupStatuses.values()) {
+    if (s.has('WATCHED')) watchedTitles++;
+    if (s.has('WATCHING')) watchingTitles++;
+  }  
 
   return {
     totals: {
