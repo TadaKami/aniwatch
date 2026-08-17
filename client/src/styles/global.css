@@ -1,0 +1,251 @@
+:root{
+    --color-bg: #ffffff;
+    --color-bg-elevated: #f5f5f7;
+    --color-surface: #ffffff;
+    --color-border: #e5e5ea;
+    --color-text: #1c1c1e;
+    --color-text-muted: #8e8e93;
+    --color-accent: #ff4b6e;
+    --color-accent-hover: #ff3a5c;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-error: #ff3b30;
+  
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/*Тёмная тема для класса html*/
+html.dark{
+    --color-bg: #0f0f12;
+    --color-bg-elevated: #1a1a20;
+    --color-surface: #18181d;
+    --color-border: #2a2a33;
+    --color-text: #f2f2f7;
+    --color-text-muted: #8e8e93;
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* И авто-тема по системе */
+@media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      --color-bg: #0f0f12;
+      --color-bg-elevated: #1a1a20;
+      --color-surface: #18181d;
+      --color-border: #2a2a33;
+      --color-text: #f2f2f7;
+      --color-text-muted: #8e8e93;
+    }
+}
+
+
+  /* ============ Reset / базовые ============ */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
+
+html, body {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+img { max-width: 100%; display: block; }
+
+/* ============ Layout ============ */
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.app__title {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--color-accent), #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.app__subtitle {
+    color: var(--color-text-muted);
+    margin-top: 8px;
+}
+
+.container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 16px;     
+}
+
+.card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ============ Адаптивность (из ТЗ) ============ */
+@media (min-width: 768px) {
+    .container { padding: 0 24px; }
+}
+
+@media (min-width: 1024px) {
+    .container { padding: 0 32px; }
+}
+
+/* ============ Layout: каркас ============ */
+.layout { min-height: 100vh; display: flex; flex-direction: column; }
+.layout__content { flex: 1; padding-top: 24px; padding-bottom: 48px; }
+
+/* ============ Header ============ */
+.header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 24px;
+    padding: 12px 24px;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+}
+.header__logo {
+    font-weight: 700; font-size: 1.15rem;
+    background: linear-gradient(135deg, var(--color-accent), #a855f7);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.header__nav { display: flex; gap: 8px; margin-right: auto; }
+.header__nav a { color: var(--color-text-muted); padding: 6px 12px; border-radius: var(--radius-sm); }
+.header__nav a:hover { color: var(--color-text); background: var(--color-bg-elevated); }
+.header__nav a.active { color: var(--color-text); background: var(--color-bg-elevated); }
+.header__auth { display: flex; align-items: center; gap: 12px; }
+.header__auth a:hover { color: var(--color-accent); }
+.header__user { color: var(--color-text-muted); }
+.btn-ghost { color: var(--color-text-muted); padding: 6px 10px; border-radius: var(--radius-sm); }
+.btn-ghost:hover { color: var(--color-error); background: var(--color-bg-elevated); }
+.btn-accent { background: var(--color-accent); color: #fff !important; padding: 6px 12px; border-radius: var(--radius-md); }
+.btn-accent:hover { background: var(--color-accent-hover); }
+
+/* ============ Auth-формы ============ */
+.auth-page { display: flex; justify-content: center; padding-top: 48px; }
+.auth-form { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
+.auth-form label { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: var(--color-text-muted); }
+.auth-form input {
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    font: inherit;
+}
+.auth-form input:focus { outline: 2px solid var(--color-accent); border-color: transparent; }
+.auth-form button[type="submit"] {
+    padding: 10px 12px; border-radius: var(--radius-md);
+    background: var(--color-accent); color: #fff; font-weight: 600;
+}
+.auth-form button[type="submit"]:hover { background: var(--color-accent-hover); }
+.auth-form button:disabled { opacity: .6; cursor: not-allowed; }
+.form-error {
+    padding: 10px 12px; border-radius: var(--radius-md);
+    background: rgba(255, 59, 48, .12); color: var(--color-error); font-size: .9rem;
+}
+.auth-form__alt { text-align: center; font-size: .9rem; color: var(--color-text-muted); }
+.auth-form__alt a { color: var(--color-accent); }
+
+
+/* ============ Поиск ============ */
+.search-page { display: flex; flex-direction: column; gap: 16px; }
+.search-form { display: flex; gap: 8px; }
+.search-form__input {
+    flex: 1; padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    color: var(--color-text); font: inherit;
+}
+.filters { display: flex; flex-direction: column; gap: 12px; }
+.filters__row { display: flex; flex-wrap: wrap; gap: 12px; }
+.filters__row label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--color-text-muted); }
+.filters__row select, .filters__row input {
+    padding: 6px 8px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-text); font: inherit;
+}
+.filters__genres { display: flex; flex-wrap: wrap; gap: 6px; }
+.genre-chip {
+    padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted); font-size: .85rem; background: transparent;
+}
+.search-form .genre-chip, .filters .genre-chip { cursor: pointer; }
+.genre-chip:hover { color: var(--color-text); border-color: var(--color-text-muted); }
+.genre-chip--active {
+    background: linear-gradient(135deg, var(--color-accent), #a855f7);
+    color: #fff; border-color: transparent;
+}
+.anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.anime-card { display: flex; flex-direction: column; gap: 8px; }
+.anime-card__cover { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: var(--radius-md); }
+.anime-card__title { font-size: .95rem; font-weight: 600; }
+.anime-card__title:hover { color: var(--color-accent); }
+.anime-card__meta { font-size: .8rem; color: var(--color-text-muted); }
+.anime-card__genres { display: flex; flex-wrap: wrap; gap: 4px; }
+.anime-card__genres .genre-chip { font-size: .75rem; padding: 2px 8px; }
+.anime-card__add { display: flex; gap: 6px; }
+.anime-card__add select {
+    flex: 1; padding: 6px 8px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font: inherit;
+}
+.anime-card__added { color: var(--color-success); font-size: .85rem; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.pagination button { padding: 8px 14px; border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.pagination button:disabled { opacity: .4; cursor: not-allowed; }
+.empty { color: var(--color-text-muted); text-align: center; padding: 32px 0; }
+
+.anime-card__add select { min-width: 0; }
+.anime-card__add button { flex: 0 0 auto; padding: 6px 10px; white-space: nowrap; }
+
+/* ============ Карточка тайтла ============ */
+.detail { display: flex; flex-direction: column; gap: 16px; }
+.detail__hero { display: flex; gap: 20px; flex-wrap: wrap; }
+.detail__cover { width: 220px; border-radius: var(--radius-md); object-fit: cover; }
+.detail__info { display: flex; flex-direction: column; gap: 10px; }
+.detail__orig { color: var(--color-text-muted); }
+.detail__meta { display: flex; flex-wrap: wrap; gap: 16px; color: var(--color-text-muted); font-size: .9rem; }
+.detail__actions { display: flex; gap: 8px; }
+.detail__actions select {
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font: inherit;
+}
+.detail__description { line-height: 1.6; }
+.detail__description a { color: var(--color-accent); }
+.episodes-list { display: flex; flex-direction: column; gap: 4px; max-height: 440px; overflow-y: auto; padding-right: 8px; }
+.episode { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--color-bg-elevated); cursor: pointer; }
+.episode:hover { background: var(--color-border); }
+.episode input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--color-accent); cursor: pointer; }
+.episode__num { min-width: 36px; color: var(--color-text-muted); font-size: .85rem; }
+.episode__name { font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.episode--watched .episode__num, .episode--watched .episode__name { color: var(--color-success); }
+
+.episode input[type="checkbox"]:disabled { opacity: .45; cursor: not-allowed; }
+/* ============ Списки и дашборд ============ */
+.watchlist { display: flex; flex-direction: column; gap: 24px; }
+.dashboard { display: flex; flex-direction: column; gap: 16px; }
+.dashboard__bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 180px 1fr 32px; align-items: center; gap: 12px; }
+.bar-row__label { font-size: .9rem; color: var(--color-text-muted); }
+.bar-row__track { height: 10px; border-radius: 999px; background: var(--color-bg-elevated); overflow: hidden; }
+.bar-row__fill { height: 100%; background: linear-gradient(135deg, var(--color-accent), #a855f7); }
+.bar-row__count { text-align: right; font-size: .85rem; color: var(--color-text-muted); }
