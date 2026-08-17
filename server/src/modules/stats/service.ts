@@ -1,6 +1,6 @@
-import { and, eq, and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
-import { anime as animeTable, watchItems } from '../../db/schema.js';
+import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
 
 export interface GenreStat {
   genre: string;
