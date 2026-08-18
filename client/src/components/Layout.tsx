@@ -6,7 +6,7 @@ export function Layout(){
     return (
         <div className="layout">
             <header className="header">
-                <Link to="/" className='header__logo'>AnimeWatch</Link>
+                <Link to="/" className='header__logo'>Episodex</Link>
                 <nav className="header__nav">
                     <NavLink to="/profile">Профиль</NavLink>
                     <NavLink to="/search">Поиск</NavLink>
