@@ -17,5 +17,6 @@ export const animeApi = {
     genres: () => api.get<{ genres: GenreDto[] }>('/anime/genres'),
     details: (id: number) => api.get<AnimeDetailsResponse>(`/anime/${id}`),
     related: (id: number) => api.get<RelatedAnime[]>(`/anime/${id}/related`),
-    pick: () => api.get<NormalizedAnime>('/anime/pick'),
+    pick: (excludeId?: number) =>
+        api.get<NormalizedAnime>(`/anime/pick${excludeId ? `?exclude=${excludeId}` : ''}`),
 };

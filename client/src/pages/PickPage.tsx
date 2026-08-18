@@ -12,7 +12,7 @@ export function PickPage() {
     function load() {
         setBusy(true);
         setErr(null);
-        animeApi.pick()
+        animeApi.pick(item?.id)
             .then(setItem)
             .catch((e) => setErr(e instanceof ApiError ? e.message : 'Ошибка подбора'))
             .finally(() => setBusy(false));

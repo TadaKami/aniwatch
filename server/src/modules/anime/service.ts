@@ -415,7 +415,7 @@ export async function getRelated(shikimoriId: number): Promise<RelatedAnime[]> {
 
 // ========== «Что посмотреть»: случайный тайтл из топа ==========
 
-export async function pickRandom(userId?: string) {
+export async function pickRandom(userId?: string, excludeId?: number) {
   let excludeIds: string | undefined;
   if (userId) {
     const rows = await db
@@ -430,7 +430,7 @@ export async function pickRandom(userId?: string) {
     order: 'ranked',
     status: 'released',
     kind: 'tv',
-    limit: 50,
+    limit: 100,
     exclude_ids: excludeIds,
   });
   if (items.length === 0) throw new HttpError(404, 'Nothing to pick');

@@ -54,7 +54,11 @@ animeRouter.get(
   '/pick',
   optionalAuth,
   asyncHandler(async (req, res) => {
-    res.json(await service.pickRandom((req as AuthRequest).userId));
+    const exclude = Number(req.query.exclude);
+    res.json(await service.pickRandom(
+      (req as AuthRequest).userId,
+      Number.isFinite(exclude) && exclude > 0 ? exclude : undefined,
+    ));
   })
 );
 
