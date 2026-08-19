@@ -32,9 +32,23 @@ const KIND_RU: Record<string, string> = {
     tv: 'ТВ', movie: 'Фильм', ova: 'OVA', ona: 'ONA', special: 'Спешл', music: 'Клип',
 };
 
+const NEXT_TABS = [
+    { id: 'anime', label: 'Аниме' },
+    { id: 'tmdb', label: 'Сериалы и фильмы' },
+    { id: 'anons', label: 'Анонсы' },
+] as const;
+type NextTab = (typeof NEXT_TABS)[number]['id'];
+
+function nextFilter(it: NextItem, tab: NextTab): boolean {
+    if (tab === 'anons') return it.status === 'anons';
+    if (tab === 'anime') return it.source === 'shikimori' && it.status !== 'anons';
+    return it.source === 'tmdb' && it.status !== 'anons';
+}
+
 function NextPanel() {
     const [items, setItems] = useState<NextItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [tab, setTab] = useState<NextTab>('anime');
 
     useEffect(() => {
         api.get<NextItem[]>('/stats/next')
@@ -44,29 +58,45 @@ function NextPanel() {
 
     if (error) return <div className="form-error">{error}</div>;
     if (!items) return <div className="empty">Загружаем продолжения…</div>;
-    if (items.length === 0) {
-        return <div className="empty">Продолжений не найдено: вы посмотрели всё вышедшее 🎉</div>;
-    }
+
+    const filtered = items.filter((it) => nextFilter(it, tab));
 
     return (
-        <div className="anime-grid">
-            {items.map((it) => (
-                <div key={it.id} className="anime-card card">
-                    <Link to={it.source === 'tmdb' ? `/title/tmdb/${it.id}?type=${it.contentType}` : `/anime/${it.id}`}>
-                        {it.image && <img className="anime-card__cover" src={it.image.preview} alt="" loading="lazy" />}
-                        <div className="anime-card__title">{it.russian ?? it.name}</div>
-                    </Link>
-                    <div className="anime-card__meta">
-                        {KIND_RU[it.kind ?? ''] ?? it.kind ?? '—'} · {it.airedOn ? new Date(it.airedOn).getUTCFullYear() : 'TBA'}
-                        {it.status === 'ongoing' && ' · онгоинг'}
-                        {it.status === 'anons' && ' · анонс'}
-                    </div>
-                    <div className="anime-card__meta">
-                        {it.relation === 'similar' ? `Похоже на: ${it.sourceTitle}` : `Продолжение: ${it.sourceTitle}`}
-                    </div>
-                    {it.inListStatus && <div className="anime-card__added">Уже в списке</div>}
+        <div className="watchlist">
+            <div className="src-tabs">
+                {NEXT_TABS.map((t) => (
+                    <button
+                        key={t.id}
+                        className={'genre-chip' + (tab === t.id ? ' genre-chip--active' : '')}
+                        onClick={() => setTab(t.id)}
+                    >
+                        {t.label} · {items.filter((it) => nextFilter(it, t.id)).length}
+                    </button>
+                ))}
+            </div>
+            {filtered.length === 0 && (
+                <div className="empty">
+                    {tab === 'anons'
+                        ? 'Анонсов пока нет — загляните позже.'
+                        : 'Продолжений не найдено: вы посмотрели всё вышедшее 🎉'}
                 </div>
-            ))}
+            )}
+            <div className="anime-grid">
+                {filtered.map((it) => (
+                    <div key={`${it.source}:${it.id}`} className="anime-card card">
+                        <Link to={it.source === 'tmdb' ? `/title/tmdb/${it.id}?type=${it.contentType}` : `/anime/${it.id}`}>
+                            {it.image && <img className="anime-card__cover" src={it.image.preview} alt="" loading="lazy" />}
+                            <div className="anime-card__title">{it.russian ?? it.name}</div>
+                        </Link>
+                        <div className="anime-card__meta">
+                            {KIND_RU[it.kind ?? ''] ?? it.kind ?? '—'} · {it.airedOn ? new Date(it.airedOn).getUTCFullYear() : 'TBA'}
+                            {it.status === 'ongoing' && ' · онгоинг'}
+                            {it.status === 'anons' && ' · анонс'}
+                        </div>
+                        <div className="anime-card__meta">Продолжение: {it.sourceTitle}</div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

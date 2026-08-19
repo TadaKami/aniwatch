@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql, inArray } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
 import { getGenres, getRelated, searchAnimes, type RelatedAnime } from '../anime/service.js';
@@ -24,7 +24,7 @@ export async function getGenreStats(userId: string): Promise<GenreStat[]> {
     .select({ genres: animeTable.genres, name: animeTable.name })
     .from(watchItems)
     .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
-    .where(and(eq(watchItems.userId, userId), eq(watchItems.status, 'WATCHED')));
+    .where(and(eq(watchItems.userId, userId), inArray(watchItems.status, ['WATCHED', 'WATCHING'])));
 
   const groups = new Map<string, Set<string>>();
   for (const row of rows) {
