@@ -19,4 +19,5 @@ export const tmdbApi = {
     full: (type: 'tv' | 'movie', id: number) => api.get<TmdbFullDetails>(`/tmdb/${type}/${id}/full`),
     season: (id: number, n: number) => api.get<TmdbSeasonEpisode[]>(`/tmdb/tv/${id}/season/${n}`),
     related: (type: 'tv' | 'movie', id: number) => api.get<NormalizedAnime[]>(`/tmdb/${type}/${id}/related`),
+    pick: (type: 'tv' | 'movie') => api.get<NormalizedAnime>(`/tmdb/pick/${type}`),
 };

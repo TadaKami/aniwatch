@@ -5,6 +5,9 @@ import { tmdbGet, tmdbImage } from './tmdb.js';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
+import { and, eq } from 'drizzle-orm';
+import { db } from '../../db/client.js';
+import { anime as animeTable, watchItems } from '../../db/schema.js';
 
 const GENRES_TTL_MS = 24 * 60 * 60 * 1000;
 const genreCache = new Map<string, { data: { id: number; name: string }[]; fetchedAt: number }>();
@@ -190,4 +193,28 @@ export async function getTmdbSeasonEpisodes(id: number, season: number): Promise
 export async function getTmdbRelated(type: 'tv' | 'movie', id: number): Promise<NormalizedAnime[]> {
   const d = await tmdbGet<{ results?: TmdbItem[] }>(`/${type}/${id}/recommendations`, { page: 1 });
   return (d.results ?? []).slice(0, 12).map((r) => normalizeTmdb(r, type, new Map()));
+}
+// ========== «Что посмотреть»: случайный тайтл из топа TMDB ==========
+
+export async function pickTmdb(type: 'tv' | 'movie', userId?: string) {
+  let exclude = new Set<number>();
+  if (userId) {
+    const rows = await db
+      .select({ shikimoriId: animeTable.shikimoriId })
+      .from(watchItems)
+      .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
+      .where(and(eq(watchItems.userId, userId), eq(animeTable.source, 'tmdb')));
+    exclude = new Set(rows.map((r) => r.shikimoriId));
+  }
+
+  const page = 1 + Math.floor(Math.random() * 5);
+  const d = await tmdbGet<{ results?: TmdbItem[] }>(`/discover/${type}`, {
+    sort_by: 'vote_average.desc',
+    'vote_count.gte': 100,
+    include_adult: false,
+    page,
+  });
+  const pool = (d.results ?? []).filter((r) => !exclude.has(r.id));
+  if (pool.length === 0) throw new HttpError(404, 'Nothing to pick');
+  return normalizeTmdb(pool[Math.floor(Math.random() * pool.length)], type, new Map());
 }

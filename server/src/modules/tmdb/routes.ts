@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler, HttpError } from '../../lib/http.js';
-import * as service from './service.js';
 import { optionalAuth, type AuthRequest } from '../../middleware/auth.js';
+import * as service from './service.js';
 
 export const tmdbRouter = Router();
 
@@ -18,6 +18,16 @@ tmdbRouter.post(
   '/search',
   asyncHandler(async (req, res) => {
     res.json(await service.searchTmdb(req.body));
+  })
+);
+
+// ВАЖНО: раньше '/:type/:id', иначе "pick" поймается как type
+tmdbRouter.get(
+  '/pick/:type',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const type = req.params.type === 'movie' ? 'movie' : 'tv';
+    res.json(await service.pickTmdb(type, (req as AuthRequest).userId));
   })
 );
 
@@ -52,6 +62,7 @@ tmdbRouter.get(
   })
 );
 
+// ВАЖНО: после всех более специфичных маршрутов
 tmdbRouter.get(
   '/:type/:id',
   asyncHandler(async (req, res) => {
