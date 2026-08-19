@@ -275,8 +275,8 @@ img { max-width: 100%; display: block; }
 .bar-row__count { text-align: right; font-size: .85rem; color: var(--color-text-muted); }
 
 /* ============ Мобильная адаптация ============ */
-@media (max-width: 768px) {
 .bottom-nav { display: none; }
+
 @media (max-width: 768px) {
     .header__nav { display: none; }
     .bottom-nav {
@@ -291,18 +291,11 @@ img { max-width: 100%; display: block; }
     }
     .bottom-nav a i { font-style: normal; font-size: 1.15rem; }
     .bottom-nav a.active { color: var(--color-accent); }
-    .layout__content { padding-bottom: 84px; }    
+    .layout__content { padding-bottom: 84px; }
+
     .header { flex-wrap: wrap; gap: 10px 12px; padding: 10px 16px; }
     .header__logo { font-size: 1.05rem; }
     .header__auth { margin-left: auto; }
-    /* нав — отдельной горизонтальной лентой со скроллом */
-    .header__nav {
-        order: 3; width: 100%; margin-right: 0;
-        overflow-x: auto; -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-    .header__nav::-webkit-scrollbar { display: none; }
-    .header__nav a { white-space: nowrap; }
 }
 
 @media (max-width: 560px) {
@@ -326,7 +319,6 @@ img { max-width: 100%; display: block; }
 
     .pagination button { padding: 8px 10px; }
 }
-
 /* ============ Рекомендации ============ */
 .recs-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
 .rec-card { min-width: 110px; max-width: 110px; }
