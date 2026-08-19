@@ -13,6 +13,12 @@ const STATUS_LABELS: Record<WatchStatus, string> = {
     DROPPED: 'Брошено',
 };
 
+const NO_COVER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400">' +
+    '<rect width="100%" height="100%" fill="#1a1a20"/>' +
+    '<text x="50%" y="50%" fill="#8e8e93" font-family="sans-serif" font-size="16" text-anchor="middle">Нет постера</text></svg>'
+);
+
 export function TmdbDetailPage() {
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
@@ -176,7 +182,8 @@ function TmdbRecs({ type, id }: { type: 'tv' | 'movie'; id: number }) {
             <div className="recs-row">
                 {recs.map((r) => (
                     <Link key={r.id} to={`/title/tmdb/${r.id}?type=${r.contentType}`} className="rec-card">
-                        <img className="rec-card__cover" src={r.image.preview} alt="" loading="lazy" />
+                        <img className="rec-card__cover" src={r.image.preview || NO_COVER} alt="" loading="lazy"
+                            onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }} />
                         <div className="rec-card__title">{r.russian ?? r.name}</div>
                     </Link>
                 ))}

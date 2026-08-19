@@ -12,6 +12,11 @@ const STATUS_LABELS: Record<WatchStatus, string> = {
     WATCHED: 'Просмотрено',
     DROPPED: 'Брошено',
 };
+const NO_COVER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400">' +
+    '<rect width="100%" height="100%" fill="#1a1a20"/>' +
+    '<text x="50%" y="50%" fill="#8e8e93" font-family="sans-serif" font-size="16" text-anchor="middle">Нет постера</text></svg>'
+);
 
 export function AnimeDetailPage(){
     const { id } = useParams<{ id: string }>();
@@ -21,6 +26,7 @@ export function AnimeDetailPage(){
     const [error, setError] = useState<string | null>(null);
     const [status, setStatus] = useState<WatchStatus>('WANT_TO_WATCH');
     const [epInfo, setEpInfo] = useState<Map<number, { russian: string | null; name: string | null }>>(new Map());
+    const [heroCover, setHeroCover] = useState<string>('');
 
     const animeId = Number(id);
     async function refresh() {
@@ -36,6 +42,17 @@ export function AnimeDetailPage(){
             .catch(() => setEpInfo(new Map()));
         refresh().catch((e)=> setError(e instanceof ApiError ? e.message : 'Ошибка загрузки'));
     }, [id]);
+
+    useEffect(() => {
+        if (!data) return;
+        setHeroCover(data.anime.image.original);
+        let cancelled = false;
+        api.get<{ ok: boolean }>(`/anime/cover-status?u=${encodeURIComponent(data.anime.image.original)}`)
+            .then((r) => { if (!cancelled && !r.ok) setHeroCover(NO_COVER); })
+            .catch(() => {});
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data?.anime.id]);    
 
     async function addToList() {
         if (!data) return;
@@ -73,30 +90,29 @@ export function AnimeDetailPage(){
             tv: 'tv', tv_13: 'tv', tv_24: 'tv', movie: 'movie',
             ova: 'ova', ona: 'ona', special: 'special', tv_special: 'special', music: 'music',
         };
-        const baseKind = KIND_MAP[anime.kind ?? ''];        
+        const baseKind = KIND_MAP[anime.kind ?? ''];
 
         useEffect(() => {
             const ids = anime.genres.slice(0, 3).map((g) => g.id);
-
             let cancelled = false;
             (async () => {
-            const tries: SearchParams[] = [
-                ...(ids.length ? [
-                    { genres: ids, perPage: 12 },
-                    { genres: ids.slice(0, 2), perPage: 12 },
-                    { genres: ids.slice(0, 1), perPage: 12 },
-                ] : []),
-                { kind: baseKind, year: anime.seasonYear ?? undefined, perPage: 12 },
-                { kind: baseKind, perPage: 12 },
-            ];
-            let best: NormalizedAnime[] = [];
-            for (const t of tries) {
-                const r = await animeApi.search(t);
-                const list = r.media.filter((m) => m.id !== anime.id);
-                if (list.length > best.length) best = list;
-                if (list.length >= 4) break;
-            }
-            if (!cancelled) setRecs(best.slice(0, 10));                
+                const tries: SearchParams[] = [
+                    ...(ids.length ? [
+                        { genres: ids, perPage: 12 },
+                        { genres: ids.slice(0, 2), perPage: 12 },
+                        { genres: ids.slice(0, 1), perPage: 12 },
+                    ] : []),
+                    { kind: baseKind, year: anime.seasonYear ?? undefined, perPage: 12 },
+                    { kind: baseKind, perPage: 12 },
+                ];
+                let best: NormalizedAnime[] = [];
+                for (const t of tries) {
+                    const r = await animeApi.search(t);
+                    const list = r.media.filter((m) => m.id !== anime.id);
+                    if (list.length > best.length) best = list;
+                    if (list.length >= 4) break;
+                }
+                if (!cancelled) setRecs(best.slice(0, 10));
             })().catch(() => {});
             return () => { cancelled = true; };
         }, [anime.id]);
@@ -106,16 +122,30 @@ export function AnimeDetailPage(){
             <div className="card">
                 <h3>Похожее по жанрам</h3>
                 <div className="recs-row">
-                    {recs.map((r) => (
-                        <Link key={r.id} to={`/anime/${r.id}`} className="rec-card">
-                            <img className="rec-card__cover" src={r.image.preview} alt="" loading="lazy" />
-                            <div className="rec-card__title">{r.russian ?? r.name}</div>
-                        </Link>
-                    ))}
+                    {recs.map((r) => <RecCard key={r.id} r={r} />)}
                 </div>
             </div>
         );
     }
+
+    function RecCard({ r }: { r: NormalizedAnime }) {
+        const [cover, setCover] = useState(r.image.preview);
+        useEffect(() => {
+            setCover(r.image.preview);
+            let cancelled = false;
+            api.get<{ ok: boolean }>(`/anime/cover-status?u=${encodeURIComponent(r.image.preview)}`)
+                .then((res) => { if (!cancelled && !res.ok) setCover(NO_COVER); })
+                .catch(() => {});
+            return () => { cancelled = true; };
+        }, [r.id]);
+        return (
+            <Link to={r.source === 'tmdb' ? `/title/tmdb/${r.id}?type=${r.contentType}` : `/anime/${r.id}`} className="rec-card">
+                <img className="rec-card__cover" src={cover || NO_COVER} alt="" loading="lazy"
+                    onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }} />
+                <div className="rec-card__title">{r.russian ?? r.name}</div>
+            </Link>
+        );
+    }    
     const KIND_RU: Record<string, string> = {
         tv: 'ТВ', movie: 'Фильм', ova: 'OVA', ona: 'ONA', special: 'Спешл', music: 'Клип',
     };
@@ -164,7 +194,8 @@ export function AnimeDetailPage(){
             {data && (
                 <>
                     <div className="detail__hero card">
-                        <img src={data.anime.image.original} alt="" className="detail__cover" />
+                        <img src={heroCover || NO_COVER} alt="" className="detail__cover"
+                            onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }} />
                         <div className="detail__info">
                             <h2>{data.anime.russian ?? data.anime.name}</h2>
                             <div className="detail__orig">{data.anime.name}</div>

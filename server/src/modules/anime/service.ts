@@ -366,22 +366,31 @@ export async function getRelated(shikimoriId: number, hints?: (string | null)[])
     try {
       const details = await shikimoriGet<ShikimoriAnimeDetails>(`/animes/${shikimoriId}`);
       const rawNames = [details.name, details.russian, ...(hints ?? [])].filter(Boolean) as string[];
-      const bases = new Set<string>();
+      const bases: string[] = [];
       for (const nm of rawNames) {
         const clean = nm
           .replace(/\s*(\d+(st|nd|rd|th)?\s*Season|Season\s*\d+|Movie|The\s*Movie|Part\s*\d+|Film\s*\d+)\s*$/i, '')
           .replace(/\s+—\s+.*$/, '')
           .replace(/\s*\d+$/, '')
           .trim();
-        if (clean.length >= 3) bases.add(clean);
-        if (clean.includes(':')) bases.add(clean.split(':')[0].trim());
+        if (clean.length >= 4 && !bases.includes(clean)) bases.push(clean);
+        if (clean.includes(':')) {
+          const pre = clean.split(':')[0].trim();
+          if (pre.length >= 4 && !bases.includes(pre)) bases.push(pre); // «Re» больше не база
+        }
       }
 
       const seen = new Set<number>();
       for (const base of bases) {
+        const b = base.toLowerCase();
         const list = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', { search: base, limit: 50 });
-        for (const a of list) {
-          if (!a.name.toLowerCase().startsWith(base.toLowerCase())) continue;
+        const matches = list.filter((a) => {
+          const n = a.name.toLowerCase();
+          const r = (a.russian ?? '').toLowerCase();
+          return n.startsWith(b) || r.startsWith(b);
+        });
+        if (matches.length === 0) continue;
+        for (const a of matches) {
           if (seen.has(a.id)) continue;
           seen.add(a.id);
           data.push({
@@ -394,6 +403,7 @@ export async function getRelated(shikimoriId: number, hints?: (string | null)[])
             image: { preview: absImg(a.image.preview), original: absImg(a.image.original) },
           });
         }
+        break; // первая продуктивная база — достаточно, мусор из коротких префиксов не тащим
       }
       console.log(`[SHIKIMORI] related via name search: ${data.length}`);
     } catch (e) {
