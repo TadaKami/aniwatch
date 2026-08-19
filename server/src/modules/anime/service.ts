@@ -42,6 +42,7 @@ export const searchSchema = z.object({
   status: z.enum(['anons', 'ongoing', 'released']).optional(),
   page: z.number().int().min(1).default(1),
   perPage: z.number().int().min(1).max(50).default(20),
+  sort: z.enum(['default', 'date_asc', 'date_desc']).default('default'),
 });
 
 export interface PageInfo{
@@ -71,17 +72,27 @@ export async function searchAnimes(input: unknown, userId?: string){
     if(rows.length > 0) excludeIds = rows.map((r)=>r.shikimoriId).join(',');
   }
 
-  const items = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', {
-      search: p.query || undefined,
-      genre: p.genres?.length ? p.genres.join(',') : undefined,
-      season: seasonParam,
-      kind: p.kind,
-      status: p.status,
-      order: p.query ? 'popularity' : 'ranked', // §4 ТЗ
-      page: p.page,
-      limit: p.perPage,
-      exclude_ids: excludeIds,    
-  });
+  const baseParams = {
+    search: p.query || undefined,
+    genre: p.genres?.length ? p.genres.join(',') : undefined,
+    season: seasonParam,
+    kind: p.kind,
+    status: p.status,
+    page: p.page,
+    limit: p.perPage,
+    exclude_ids: excludeIds,
+  };
+  const order = p.sort === 'date_asc' ? 'aired_on'
+    : p.sort === 'date_desc' ? '-aired_on'
+    : (p.query ? 'popularity' : 'ranked'); // §4 ТЗ
+  let items: ShikimoriAnimeListItem[];
+  try {
+    items = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', { ...baseParams, order });
+  } catch (e) {
+    if (e instanceof ShikimoriError && e.status === 400 && p.sort !== 'default') {
+      items = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', { ...baseParams, order: 'ranked' });
+    } else throw e;
+  }
 
   const media = items.map(normalizeAnime);
   const pageInfo: PageInfo = {

@@ -49,7 +49,8 @@ export function SearchPage() {
     const status = params.get('status') ?? '';
     const srcRaw = params.get('src') ?? '';
     const src = (srcRaw === 'tv' || srcRaw === 'movie' ? srcRaw : 'anime') as 'anime' | 'tv' | 'movie';
-    const country = params.get('country') ?? '';    
+    const country = params.get('country') ?? '';
+    const sort = params.get('sort') ?? '';
     const genresKey = genres.join(',');
 
     const [input, setInput] = useState(query);
@@ -97,7 +98,7 @@ export function SearchPage() {
             .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : 'Ошибка поиска'); })
             .finally(() => { if (!cancelled) setBusy(false); });
         return () => { cancelled = true; };
-    }, [src, query, genresKey, season, year, kind, status, country, page, perPage]);
+    }, [src, query, genresKey, season, year, kind, status, country, sort, page, perPage]);
 
     function updateParams(patch: Record<string, string | null>){
         const next = new URLSearchParams(params);
@@ -138,7 +139,14 @@ export function SearchPage() {
                 <button type="submit" className="btn-accent">Найти</button>
             </form>
             <div className="filters card">
-                                <div className="filters__row">
+                <div className="filters__row">
+                    <label>Сортировка по дате
+                        <select value={sort} onChange={(e) => updateParams({ sort: e.target.value || null })}>
+                            <option value="">По умолчанию</option>
+                            <option value="date_asc">Сначала старые</option>
+                            <option value="date_desc">Сначала новые</option>
+                        </select>
+                    </label>                    
                     {src === 'anime' && (
                         <label>Сезон
                             <select value={season} onChange={(e)=> updateParams({season: e.target.value || null})}>

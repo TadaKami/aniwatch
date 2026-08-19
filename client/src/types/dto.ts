@@ -141,6 +141,8 @@ export interface NextItem {
     image: { preview: string; original: string } | null;
     sourceTitle: string;
     inListStatus: WatchStatus | null;
+    source: 'shikimori' | 'tmdb';
+    contentType: 'anime' | 'tv' | 'movie';
 }
 
 export interface TmdbFullDetails extends NormalizedAnime {

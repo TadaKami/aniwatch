@@ -10,6 +10,11 @@ const TYPES = [
     { id: 'tv', label: 'Сериалы и дорамы' },
     { id: 'movie', label: 'Фильмы' },
 ] as const;
+const OPEN_LABELS: Record<string, string> = {
+    anime: 'Открыть тайтл',
+    tv: 'Открыть сериал',
+    movie: 'Открыть фильм',
+};
 type PickType = (typeof TYPES)[number]['id'];
 
 export function PickPage() {
@@ -20,6 +25,7 @@ export function PickPage() {
     const [item, setItem] = useState<NormalizedAnime | null>(null);
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+    
 
     function load() {
         setBusy(true);
@@ -74,7 +80,7 @@ export function PickPage() {
                                 className="btn-ghost"
                                 to={item.source === 'tmdb' ? `/title/tmdb/${item.id}?type=${item.contentType}` : `/anime/${item.id}`}
                             >
-                                Открыть тайтл
+                                {OPEN_LABELS[item.contentType] ?? 'Открыть тайтл'}
                             </Link>
                         </div>
                     </div>

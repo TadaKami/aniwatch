@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
 import { getRelated, type RelatedAnime } from '../anime/service.js';
+import { getTmdbRelated } from '../tmdb/service.js';
 
 export interface GenreStat {
   genre: string;
@@ -163,6 +164,8 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
 export interface NextItem extends RelatedAnime {
   sourceTitle: string;
   inListStatus: string | null;
+  source: 'shikimori' | 'tmdb';
+  contentType: 'anime' | 'tv' | 'movie';
 }
 
 const nextCache = new Map<string, { data: NextItem[]; fetchedAt: number }>();
@@ -173,7 +176,13 @@ export async function getNext(userId: string): Promise<NextItem[]> {
   if (cached && Date.now() - cached.fetchedAt < NEXT_TTL_MS) return cached.data;
 
   const watchedRows = await db
-    .select({ shikimoriId: animeTable.shikimoriId, russian: animeTable.russian, name: animeTable.name })
+    .select({
+      shikimoriId: animeTable.shikimoriId,
+      russian: animeTable.russian,
+      name: animeTable.name,
+      source: animeTable.source,
+      contentType: animeTable.contentType,
+    })
     .from(watchItems)
     .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
     .where(and(eq(watchItems.userId, userId), eq(watchItems.status, 'WATCHED')))
@@ -181,27 +190,32 @@ export async function getNext(userId: string): Promise<NextItem[]> {
     .limit(20);
 
   const listRows = await db
-    .select({ shikimoriId: animeTable.shikimoriId, status: watchItems.status })
+    .select({ shikimoriId: animeTable.shikimoriId, status: watchItems.status, source: animeTable.source })
     .from(watchItems)
     .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
     .where(eq(watchItems.userId, userId));
-  const statusByShikimori = new Map(listRows.map((r) => [r.shikimoriId, r.status]));
+  const statusByKey = new Map(listRows.map((r) => [`${r.source}:${r.shikimoriId}`, r.status]));
 
   const out: NextItem[] = [];
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   for (const w of watchedRows) {
+    const isTmdb = w.source === 'tmdb';
+    const rSource = isTmdb ? 'tmdb' : 'shikimori';
+    const rType = isTmdb ? (w.contentType === 'movie' ? 'movie' : 'tv') : 'anime';    
     let related: RelatedAnime[] = [];
     try {
-      related = await getRelated(w.shikimoriId);
+      related = isTmdb
+        ? await getTmdbRelated(rType, w.shikimoriId)
+        : await getRelated(w.shikimoriId);
     } catch {
       continue;
     }
     for (const r of related) {
-      if (r.id === w.shikimoriId || seen.has(r.id)) continue;
-      const inList = statusByShikimori.get(r.id) ?? null;
+      if (r.id === w.shikimoriId || seen.has(`${rSource}:${r.id}`)) continue;
+      const inList = statusByKey.get(`${rSource}:${r.id}`) ?? null;
       if (inList === 'WATCHED') continue; // уже просмотрено
-      seen.add(r.id);
-      out.push({ ...r, sourceTitle: w.russian ?? w.name, inListStatus: inList });
+      seen.add(`${rSource}:${r.id}`);
+      out.push({ ...r, sourceTitle: w.russian ?? w.name, inListStatus: inList, source: rSource, contentType: rType });
     }
   }
 

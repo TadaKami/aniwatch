@@ -52,7 +52,7 @@ function NextPanel() {
         <div className="anime-grid">
             {items.map((it) => (
                 <div key={it.id} className="anime-card card">
-                    <Link to={`/anime/${it.id}`}>
+                    <Link to={it.source === 'tmdb' ? `/title/tmdb/${it.id}?type=${it.contentType}` : `/anime/${it.id}`}>
                         {it.image && <img className="anime-card__cover" src={it.image.preview} alt="" loading="lazy" />}
                         <div className="anime-card__title">{it.russian ?? it.name}</div>
                     </Link>

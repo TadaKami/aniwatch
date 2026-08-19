@@ -10,6 +10,7 @@ export interface TmdbSearchParams {
     country?: string;
     page?: number;
     perPage?: number;
+    sort?: string;
 }
 
 export const tmdbApi = {
