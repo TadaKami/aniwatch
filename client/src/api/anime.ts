@@ -10,7 +10,6 @@ export interface SearchParams {
     status?: string;
     page?: number;
     perPage?: number;
-    sort?: string;
 }
 
 export const animeApi = {

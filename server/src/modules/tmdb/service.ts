@@ -92,7 +92,6 @@ const tmdbSearchSchema = z.object({
   country: z.string().length(2).optional(),
   page: z.number().int().min(1).default(1),
   perPage: z.number().int().min(1).max(20).default(20), // TMDB отдаёт максимум 20/стр
-  sort: z.enum(['default', 'date_asc', 'date_desc']).default('default'),
 });
 
 export async function searchTmdb(input: unknown) {
@@ -101,16 +100,12 @@ export async function searchTmdb(input: unknown) {
   const p = parsed.data;
   const gmap = new Map((await getTmdbGenres(p.type)).map((g) => [g.id, g.name]));
 
-  const sortBy = p.sort === 'date_asc'
-    ? (p.type === 'tv' ? 'first_air_date.asc' : 'primary_release_date.asc')
-    : p.sort === 'date_desc'
-      ? (p.type === 'tv' ? 'first_air_date.desc' : 'primary_release_date.desc')
-      : 'popularity.desc';  
+  
   const list = p.query
     ? await tmdbGet<TmdbList>(`/search/${p.type}`, { query: p.query, page: p.page, include_adult: false })
     : await tmdbGet<TmdbList>(`/discover/${p.type}`, {
         page: p.page,
-        sort_by: sortBy,
+        sort_by: 'popularity.desc',
         include_adult: false,
         with_genres: p.genres?.length ? p.genres.join(',') : undefined,
         ...(p.type === 'tv'

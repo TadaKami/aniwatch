@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { animeApi } from '../api/anime.js';
-import { ApiError } from '../api/client.js';
+import { ApiError, api } from '../api/client.js';
 import { tmdbApi } from '../api/tmdb.js';
 import type { NormalizedAnime } from '../types/dto.js';
 
@@ -10,12 +10,19 @@ const TYPES = [
     { id: 'tv', label: 'Сериалы и дорамы' },
     { id: 'movie', label: 'Фильмы' },
 ] as const;
+
 const OPEN_LABELS: Record<string, string> = {
     anime: 'Открыть тайтл',
     tv: 'Открыть сериал',
     movie: 'Открыть фильм',
 };
 type PickType = (typeof TYPES)[number]['id'];
+
+const NO_COVER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400">' +
+    '<rect width="100%" height="100%" fill="#1a1a20"/>' +
+    '<text x="50%" y="50%" fill="#8e8e93" font-family="sans-serif" font-size="16" text-anchor="middle">Нет постера</text></svg>'
+);
 
 export function PickPage() {
     const [params, setParams] = useSearchParams();
@@ -25,6 +32,17 @@ export function PickPage() {
     const [item, setItem] = useState<NormalizedAnime | null>(null);
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+    const [cover, setCover] = useState<string>('');
+
+    useEffect(() => {
+        if (!item) return;
+        setCover(item.image.preview);
+        let cancelled = false;
+        api.get<{ ok: boolean }>(`/anime/cover-status?u=${encodeURIComponent(item.image.preview)}`)
+            .then((r) => { if (!cancelled && !r.ok) setCover(NO_COVER); })
+            .catch(() => { /* оставляем оригинал */ });
+        return () => { cancelled = true; };
+    }, [item]);    
     
 
     function load() {
@@ -62,7 +80,12 @@ export function PickPage() {
             {busy && <div className="empty">Подбираем…</div>}
             {item && !busy && (
                 <div className="pick__card card">
-                    <img className="pick__cover" src={item.image.preview} alt="" />
+                    <img
+                        className="pick__cover"
+                        src={cover || NO_COVER}
+                        alt=""
+                        onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }}
+                    />
                     <div className="pick__info">
                         <h3>{item.russian ?? item.name}</h3>
                         <div className="anime-card__meta">
