@@ -2,6 +2,9 @@ import { z } from 'zod';
 import { HttpError } from '../../lib/http.js';
 import type { NormalizedAnime } from '../anime/normalize.js';
 import { tmdbGet, tmdbImage } from './tmdb.js';
+import { and, eq } from 'drizzle-orm';
+import { db } from '../../db/client.js';
+import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
 
 const GENRES_TTL_MS = 24 * 60 * 60 * 1000;
 const genreCache = new Map<string, { data: { id: number; name: string }[]; fetchedAt: number }>();
@@ -121,4 +124,70 @@ export async function searchTmdb(input: unknown) {
 export async function getTmdbDetails(type: 'tv' | 'movie', id: number): Promise<NormalizedAnime> {
   const d = await tmdbGet<TmdbDetails>(`/${type}/${id}`);
   return normalizeTmdb(d, type, new Map());
+}
+// ========== Полные детали: сезоны + прогресс пользователя ==========
+
+interface TmdbFullRaw extends TmdbDetails {
+  seasons?: { season_number: number; name: string | null; episode_count: number }[];
+}
+
+export interface TmdbSeasonInfo { season: number; name: string | null; episodeCount: number; }
+export interface TmdbSeasonEpisode { episode: number; name: string | null; airedOn: string | null; }
+export interface TmdbFullDetails extends NormalizedAnime {
+  seasons: TmdbSeasonInfo[];
+  watchItem: { id: string; status: string; note: string | null } | null;
+  progress: { seasonNumber: number; episodeNumber: number }[];
+}
+
+export async function getTmdbFullDetails(type: 'tv' | 'movie', id: number, userId?: string): Promise<TmdbFullDetails> {
+  const d = await tmdbGet<TmdbFullRaw>(`/${type}/${id}`);
+  const base = normalizeTmdb(d, type, new Map());
+
+  const seasons: TmdbSeasonInfo[] = type === 'tv'
+    ? (d.seasons ?? [])
+        .filter((s) => (s.season_number ?? 0) > 0)
+        .map((s) => ({ season: s.season_number, name: s.name ?? null, episodeCount: s.episode_count ?? 0 }))
+    : [];
+
+  let watchItem: TmdbFullDetails['watchItem'] = null;
+  let progress: { seasonNumber: number; episodeNumber: number }[] = [];
+  if (userId) {
+    const [local] = await db
+      .select({ id: animeTable.id })
+      .from(animeTable)
+      .where(and(eq(animeTable.source, 'tmdb'), eq(animeTable.shikimoriId, id)))
+      .limit(1);
+    if (local) {
+      const [item] = await db
+        .select({ id: watchItems.id, status: watchItems.status, note: watchItems.note })
+        .from(watchItems)
+        .where(and(eq(watchItems.userId, userId), eq(watchItems.animeId, local.id)))
+        .limit(1);
+      if (item) {
+        watchItem = item;
+        progress = await db
+          .select({ seasonNumber: episodeProgress.seasonNumber, episodeNumber: episodeProgress.episodeNumber })
+          .from(episodeProgress)
+          .where(and(eq(episodeProgress.userId, userId), eq(episodeProgress.watchItemId, item.id)));
+      }
+    }
+  }
+
+  return { ...base, seasons, watchItem, progress };
+}
+
+// ========== Серии сезона (названия на русском) ==========
+
+export async function getTmdbSeasonEpisodes(id: number, season: number): Promise<TmdbSeasonEpisode[]> {
+  const d = await tmdbGet<{ episodes?: { episode_number: number; name: string | null; air_date: string | null }[] }>(
+    `/tv/${id}/season/${season}`
+  );
+  return (d.episodes ?? []).map((e) => ({ episode: e.episode_number, name: e.name ?? null, airedOn: e.air_date ?? null }));
+}
+
+// ========== Рекомендации TMDB ==========
+
+export async function getTmdbRelated(type: 'tv' | 'movie', id: number): Promise<NormalizedAnime[]> {
+  const d = await tmdbGet<{ results?: TmdbItem[] }>(`/${type}/${id}/recommendations`, { page: 1 });
+  return (d.results ?? []).slice(0, 12).map((r) => normalizeTmdb(r, type, new Map()));
 }

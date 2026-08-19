@@ -142,3 +142,11 @@ export interface NextItem {
     sourceTitle: string;
     inListStatus: WatchStatus | null;
 }
+
+export interface TmdbFullDetails extends NormalizedAnime {
+    seasons: { season: number; name: string | null; episodeCount: number }[];
+    watchItem: { id: string; status: WatchStatus; note: string | null } | null;
+    progress: { seasonNumber: number; episodeNumber: number }[];
+}
+
+export interface TmdbSeasonEpisode { episode: number; name: string | null; airedOn: string | null; }
