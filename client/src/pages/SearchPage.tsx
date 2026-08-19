@@ -269,16 +269,22 @@ function AnimeCard({anime}: {anime: NormalizedAnime}){
     return (
         <div className="anime-card card">
             <Link to={anime.source === 'tmdb' ? `/title/tmdb/${anime.id}?type=${anime.contentType}` : `/anime/${anime.id}`}>
-                <img
-                    className="anime-card__cover"
-                    src={cover}
-                    alt={anime.russian ?? anime.name}
-                    loading="lazy"
-                    onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }}
-                />
-                <span className={'type-badge' + (anime.contentType === 'tv' ? ' type-badge--tv' : anime.contentType === 'movie' ? ' type-badge--movie' : '')}>
-                    {anime.contentType === 'anime' ? 'Аниме' : anime.contentType === 'tv' ? 'Сериал' : 'Фильм'}
-                </span>                
+                <div className="anime-card__poster">
+                    <img
+                        src={cover}
+                        alt={anime.russian ?? anime.name}
+                        loading="lazy"
+                        onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }}
+                    />
+                    <span className={'type-badge' + (anime.contentType === 'tv' ? ' type-badge--tv' : anime.contentType === 'movie' ? ' type-badge--movie' : '')}>
+                        {anime.contentType === 'anime' ? 'Аниме' : anime.contentType === 'tv' ? 'Сериал' : 'Фильм'}
+                    </span>
+                    {anime.score != null && (
+                        <span className={'score-badge' + (anime.score >= 8 ? ' score-badge--good' : anime.score >= 6.5 ? ' score-badge--mid' : ' score-badge--bad')}>
+                            ★{anime.score}
+                        </span>
+                    )}
+                </div>                               
                 <div className="anime-card__title">{anime.russian ?? anime.name}</div>                
             </Link>
             <div className="anime-card__meta">

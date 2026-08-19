@@ -49,9 +49,17 @@ export function WatchlistPage(){
                             {group.map((it) => (
                                 <div key={it.id} className="anime-card card">
                                     <Link to={it.anime.source === 'tmdb' ? `/title/tmdb/${it.anime.shikimoriId}?type=${it.anime.contentType}` : `/anime/${it.anime.shikimoriId}`}>
-                                        {it.anime.coverImage && (
-                                            <img className="anime-card__cover" src={it.anime.coverImage} alt="" />
-                                        )}
+                                        <div className="anime-card__poster">
+                                            {it.anime.coverImage && <img src={it.anime.coverImage} alt="" />}
+                                            <span className={'type-badge' + (it.anime.contentType === 'tv' ? ' type-badge--tv' : it.anime.contentType === 'movie' ? ' type-badge--movie' : '')}>
+                                                {it.anime.contentType === 'anime' ? 'Аниме' : it.anime.contentType === 'tv' ? 'Сериал' : 'Фильм'}
+                                            </span>
+                                            {it.anime.score != null && (
+                                                <span className={'score-badge' + (it.anime.score >= 8 ? ' score-badge--good' : it.anime.score >= 6.5 ? ' score-badge--mid' : ' score-badge--bad')}>
+                                                    ★{it.anime.score}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="anime-card__title">{it.anime.russian ?? it.anime.name}</div>
                                     </Link>
                                     <div className="anime-card__add">

@@ -31,6 +31,12 @@ export function Layout(){
             <main className="layout__content container">
                 <Outlet />
             </main>
+            <nav className="bottom-nav">
+                <NavLink to="/profile"><i>👤</i><span>Профиль</span></NavLink>
+                <NavLink to="/search"><i>🔍</i><span>Поиск</span></NavLink>
+                <NavLink to="/pick"><i>🎲</i><span>Подбор</span></NavLink>
+                {user && <NavLink to="/watchlist"><i>📚</i><span>Списки</span></NavLink>}
+            </nav>            
         </div>
     );
 }

@@ -197,7 +197,31 @@ img { max-width: 100%; display: block; }
 }
 .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
 .anime-card { display: flex; flex-direction: column; gap: 8px; }
-.anime-card__cover { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: var(--radius-md); }
+.anime-card__poster { position: relative; overflow: hidden; border-radius: var(--radius-md); aspect-ratio: 3/4; background: var(--color-bg-elevated); }
+.anime-card__poster img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+.anime-card:hover .anime-card__poster img { transform: scale(1.06); }
+.anime-card__poster::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55));
+    opacity: 0; transition: opacity .25s;
+}
+.anime-card:hover .anime-card__poster::after { opacity: 1; }
+.score-badge {
+    position: absolute; top: 8px; right: 8px; z-index: 1;
+    padding: 2px 8px; border-radius: 6px;
+    font-size: .75rem; font-weight: 700;
+    background: rgba(17,17,20,.8); color: #fff;
+    backdrop-filter: blur(4px);
+}
+.score-badge--good { background: rgba(52,199,89,.9); color: #04240c; }
+.score-badge--mid { background: rgba(255,149,0,.9); color: #241203; }
+.score-badge--bad { background: rgba(142,142,147,.9); color: #111; }
+.anime-card__title { font-size: .95rem; font-weight: 600; }
+.anime-card__title {
+    font-size: .95rem; font-weight: 600;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; min-height: 2.7em;
+}
 .anime-card__title { font-size: .95rem; font-weight: 600; }
 .anime-card__title:hover { color: var(--color-accent); }
 .anime-card__meta { font-size: .8rem; color: var(--color-text-muted); }
@@ -252,6 +276,22 @@ img { max-width: 100%; display: block; }
 
 /* ============ Мобильная адаптация ============ */
 @media (max-width: 768px) {
+.bottom-nav { display: none; }
+@media (max-width: 768px) {
+    .header__nav { display: none; }
+    .bottom-nav {
+        display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+        background: var(--color-bg);
+        border-top: 1px solid var(--color-border);
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    }
+    .bottom-nav a {
+        flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+        font-size: .65rem; color: var(--color-text-muted); padding: 4px 0;
+    }
+    .bottom-nav a i { font-style: normal; font-size: 1.15rem; }
+    .bottom-nav a.active { color: var(--color-accent); }
+    .layout__content { padding-bottom: 84px; }    
     .header { flex-wrap: wrap; gap: 10px 12px; padding: 10px 16px; }
     .header__logo { font-size: 1.05rem; }
     .header__auth { margin-left: auto; }
@@ -373,3 +413,9 @@ img { max-width: 100%; display: block; }
 }
 .type-badge--tv { background: rgba(45, 212, 191, .9); color: #052e2b; }
 .type-badge--movie { background: rgba(168, 85, 247, .9); color: #fff; }
+
+.card h3 { display: flex; align-items: center; gap: 10px; }
+.card h3::before {
+    content: ''; width: 4px; height: 18px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--color-accent), #a855f7);
+}
