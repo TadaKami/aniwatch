@@ -61,7 +61,9 @@ function NextPanel() {
                         {it.status === 'ongoing' && ' · онгоинг'}
                         {it.status === 'anons' && ' · анонс'}
                     </div>
-                    <div className="anime-card__meta">Продолжение: {it.sourceTitle}</div>
+                    <div className="anime-card__meta">
+                        {it.relation === 'similar' ? `Похоже на: ${it.sourceTitle}` : `Продолжение: ${it.sourceTitle}`}
+                    </div>
                     {it.inListStatus && <div className="anime-card__added">Уже в списке</div>}
                 </div>
             ))}
