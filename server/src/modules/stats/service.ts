@@ -1,8 +1,8 @@
 import { and, desc, eq, sql, inArray } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
-import { getGenres, getRelated, searchAnimes, type RelatedAnime } from '../anime/service.js';
-import { getTmdbSequels, getTmdbRelated } from '../tmdb/service.js';
+import { getRelated, getSimilarByGenres, type RelatedAnime } from '../anime/service.js';
+import { getTmdbRelated, getTmdbSequels } from '../tmdb/service.js';
 
 export interface GenreStat {
   genre: string;
@@ -195,11 +195,10 @@ export async function getNext(userId: string): Promise<NextItem[]> {
       name: animeTable.name,
       source: animeTable.source,
       contentType: animeTable.contentType,
-      genres: animeTable.genres,
     })
     .from(watchItems)
     .innerJoin(animeTable, eq(watchItems.animeId, animeTable.id))
-    .where(and(eq(watchItems.userId, userId), eq(watchItems.status, 'WATCHED')))
+    .where(and(eq(watchItems.userId, userId), inArray(watchItems.status, ['WATCHED', 'WATCHING'])))
     .orderBy(desc(watchItems.updatedAt))
     .limit(20);
 
@@ -212,74 +211,54 @@ export async function getNext(userId: string): Promise<NextItem[]> {
 
   const out: NextItem[] = [];
   const seen = new Set<string>();
+
   for (const w of watchedRows) {
     const isTmdb = w.source === 'tmdb';
     const rSource = isTmdb ? 'tmdb' : 'shikimori';
-    const rType = isTmdb ? (w.contentType === 'movie' ? 'movie' : 'tv') : 'anime';    
+    const rType = isTmdb ? (w.contentType === 'movie' ? 'movie' : 'tv') : 'anime';
+    const skey = (id: number) => `${rSource}:${id}`;
+
+    // 1) Настоящие продолжения
     let related: RelatedAnime[] = [];
     try {
       related = isTmdb
-        ? await getTmdbSequels(w.contentType === 'movie' ? 'movie' : 'tv', w.shikimoriId)
-        : await getRelated(w.shikimoriId);
-    } catch {
-      continue;
-    }
+        ? await getTmdbSequels(rType, w.shikimoriId)
+        : await getRelated(w.shikimoriId, [w.name, w.russian]);
+    } catch { continue; }
     for (const r of related) {
-      if (r.id === w.shikimoriId || seen.has(`${rSource}:${r.id}`)) continue;
-      const inList = statusByKey.get(`${rSource}:${r.id}`) ?? null;
+      if (r.id === w.shikimoriId || seen.has(skey(r.id))) continue;
+      const inList = statusByKey.get(skey(r.id)) ?? null;
       if (inList) continue;
-      seen.add(`${rSource}:${r.id}`);
+      seen.add(skey(r.id));
       out.push({ ...r, sourceTitle: w.russian ?? w.name, inListStatus: inList, source: rSource, contentType: rType, relation: 'sequel' });
     }
-  }
 
-  // ========== Похожее на просмотренное ==========
-  const similar: NextItem[] = [];
-  const seenSim = new Set<string>();
-  const listKeys = new Set(listRows.map((r) => `${r.source}:${r.shikimoriId}`));
-  const gmap = await genreIdMap().catch(() => null);
-
-  for (const w of watchedRows.slice(0, 10)) {
-    if (similar.length >= 12) break;
+    // 2) Похожие по жанрам — отдельной секцией и с подписью
     try {
-      if (w.source === 'tmdb') {
-        const recs = await getTmdbRelated(w.contentType === 'movie' ? 'movie' : 'tv', w.shikimoriId);
-        for (const r of recs) {
-          const key = `tmdb:${r.id}`;
-          if (r.id === w.shikimoriId || seenSim.has(key) || listKeys.has(key)) continue;
-          seenSim.add(key);
-          similar.push({ ...r, sourceTitle: w.russian ?? w.name, inListStatus: null, source: 'tmdb', contentType: w.contentType === 'movie' ? 'movie' : 'tv', relation: 'similar' });
-          if (similar.length >= 12) break;
-        }
-      } else if (gmap) {
-        const ids = (w.genres ?? [])
-          .map((g) => gmap.get(g.toLowerCase()))
-          .filter((x): x is number => x !== undefined)
-          .slice(0, 2);
-        if (ids.length === 0) continue;
-        const res = await searchAnimes({ genres: ids, perPage: 6 }, userId);
-        for (const r of res.media) {
-          const key = `shikimori:${r.id}`;
-          if (r.id === w.shikimoriId || seenSim.has(key)) continue;
-          seenSim.add(key);
-          similar.push({
-            id: r.id, name: r.name, russian: r.russian, kind: r.kind, status: r.status,
-            airedOn: r.airedOn,
-            image: { preview: r.image.preview, original: r.image.original },
-            sourceTitle: w.russian ?? w.name, inListStatus: null,
-            source: 'shikimori', contentType: 'anime', relation: 'similar',
-          });
-          if (similar.length >= 12) break;
-        }
+      const similar: RelatedAnime[] = isTmdb
+        ? (await getTmdbRelated(rType, w.shikimoriId)).map((m) => ({
+            id: m.id, name: m.name, russian: m.russian, kind: m.kind,
+            status: m.status, airedOn: m.airedOn, image: m.image,
+          }))
+        : await getSimilarByGenres(w.shikimoriId, userId, 4);
+      for (const r of similar) {
+        if (r.id === w.shikimoriId || seen.has(skey(r.id))) continue;
+        const inList = statusByKey.get(skey(r.id)) ?? null;
+        if (inList) continue;
+        seen.add(skey(r.id));
+        out.push({ ...r, sourceTitle: w.russian ?? w.name, inListStatus: inList, source: rSource, contentType: rType, relation: 'similar' });
       }
-    } catch { continue; }
+    } catch { /* пропускаем */ }
   }
 
   const rank = (s: string | null) => (s === 'ongoing' ? 0 : s === 'anons' ? 1 : 2);
-  out.sort((a, b) => rank(a.status) - rank(b.status) || (b.airedOn ?? '').localeCompare(a.airedOn ?? ''));
-  similar.sort((a, b) => rank(a.status) - rank(b.status) || (b.airedOn ?? '').localeCompare(a.airedOn ?? ''));
+  const byRank = (a: NextItem, b: NextItem) =>
+    rank(a.status) - rank(b.status) || (b.airedOn ?? '').localeCompare(a.airedOn ?? '');
+  const data = [
+    ...out.filter((o) => o.relation === 'sequel').sort(byRank),
+    ...out.filter((o) => o.relation === 'similar').sort(byRank),
+  ];
 
-  const data = [...out, ...similar];
   nextCache.set(userId, { data, fetchedAt: Date.now() });
   return data;
 }

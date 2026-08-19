@@ -93,7 +93,11 @@ function NextPanel() {
                             {it.status === 'ongoing' && ' · онгоинг'}
                             {it.status === 'anons' && ' · анонс'}
                         </div>
-                        <div className="anime-card__meta">Продолжение: {it.sourceTitle}</div>
+                    <div className="anime-card__meta">
+                        {it.relation === 'similar'
+                            ? (it.source === 'tmdb' ? `Похожее по жанрам: ${it.sourceTitle}` : `Похожие аниме по жанрам: ${it.sourceTitle}`)
+                            : `Продолжение: ${it.sourceTitle}`}
+                    </div>
                     </div>
                 ))}
             </div>

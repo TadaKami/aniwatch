@@ -232,7 +232,14 @@ export async function getTmdbSequels(type: 'tv' | 'movie', id: number): Promise<
   const colId = d.belongs_to_collection?.id;
   if (!colId) return [];
   const c = await tmdbGet<{ parts?: TmdbItem[] }>(`/collection/${colId}`);
+  const today = new Date().toISOString().slice(0, 10);
   return (c.parts ?? [])
     .filter((p) => p.id !== id)
-    .map((p) => normalizeTmdb(p, 'movie', new Map()));
+    .map((p) => {
+      const n = normalizeTmdb(p, 'movie', new Map());
+      // у частей коллекции нет status — выводим из даты, чтобы вышедшее не падало в «Анонсы»
+      n.status = p.release_date ? (p.release_date <= today ? 'released' : 'anons') : 'anons';
+      n.airedOn = p.release_date ?? n.airedOn;
+      return n;
+    });  
 }

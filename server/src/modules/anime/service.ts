@@ -83,13 +83,13 @@ export async function searchAnimes(input: unknown, userId?: string){
     exclude_ids: excludeIds,
   };
   const order = p.sort === 'date_asc' ? 'aired_on'
-    : p.sort === 'date_desc' ? '-aired_on'
+    : p.sort === 'date_desc' ? 'aired_on_desc'
     : (p.query ? 'popularity' : 'ranked'); // §4 ТЗ
   let items: ShikimoriAnimeListItem[];
   try {
     items = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', { ...baseParams, order });
   } catch (e) {
-    if (e instanceof ShikimoriError && e.status === 400 && p.sort !== 'default') {
+    if (e instanceof ShikimoriError && (e.status === 400 || e.status === 422) && p.sort !== 'default') {
       items = await shikimoriGet<ShikimoriAnimeListItem[]>('/animes', { ...baseParams, order: 'ranked' });
     } else throw e;
   }
@@ -351,7 +351,7 @@ function extractFromRest(fr: unknown): RelatedAnime[] {
   return [];
 }
 
-export async function getRelated(shikimoriId: number): Promise<RelatedAnime[]> {
+export async function getRelated(shikimoriId: number, hints?: (string | null)[]): Promise<RelatedAnime[]> {
   const cached = relatedCache.get(shikimoriId);
   if (cached && Date.now() - cached.fetchedAt < (cached.data.length ? GENRES_TTL_MS : EPISODES_NEGATIVE_TTL)) {
     return cached.data;
@@ -387,13 +387,17 @@ export async function getRelated(shikimoriId: number): Promise<RelatedAnime[]> {
   if (data.length === 0) {
     try {
       const details = await shikimoriGet<ShikimoriAnimeDetails>(`/animes/${shikimoriId}`);
-      const clean = (details.name ?? '')
-        .replace(/\s*(\d+(st|nd|rd|th)?\s*Season|Season\s*\d+|Movie|The\s*Movie)\s*$/i, '')
-        .replace(/\s*\d+$/, '')
-        .trim();
+      const rawNames = [details.name, details.russian, ...(hints ?? [])].filter(Boolean) as string[];
       const bases = new Set<string>();
-      if (clean.length >= 3) bases.add(clean);
-      if (clean.includes(':')) bases.add(clean.split(':')[0].trim());
+      for (const nm of rawNames) {
+        const clean = nm
+          .replace(/\s*(\d+(st|nd|rd|th)?\s*Season|Season\s*\d+|Movie|The\s*Movie|Part\s*\d+|Film\s*\d+)\s*$/i, '')
+          .replace(/\s+—\s+.*$/, '')
+          .replace(/\s*\d+$/, '')
+          .trim();
+        if (clean.length >= 3) bases.add(clean);
+        if (clean.includes(':')) bases.add(clean.split(':')[0].trim());
+      }
 
       const seen = new Set<number>();
       for (const base of bases) {
@@ -446,4 +450,24 @@ export async function pickRandom(userId?: string, excludeId?: number) {
   });
   if (items.length === 0) throw new HttpError(404, 'Nothing to pick');
   return normalizeAnime(items[Math.floor(Math.random() * items.length)]);
+}
+
+// ========== Похожие аниме по жанрам (для «Что дальше», с отдельной подписью) ==========
+export async function getSimilarByGenres(shikimoriId: number, userId?: string, limit = 4): Promise<RelatedAnime[]> {
+  const details = await shikimoriGet<ShikimoriAnimeDetails>(`/animes/${shikimoriId}`);
+  const ids = (details.genres ?? []).slice(0, 2).map((g) => g.id);
+  if (ids.length === 0) return [];
+  const res = await searchAnimes({ genres: ids, perPage: limit + 2 }, userId);
+  return res.media
+    .filter((m) => m.id !== shikimoriId)
+    .slice(0, limit)
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      russian: m.russian,
+      kind: m.kind,
+      status: m.status,
+      airedOn: m.airedOn,
+      image: { preview: m.image.preview, original: m.image.original },
+    }));
 }

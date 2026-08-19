@@ -96,7 +96,15 @@ export function SearchPage() {
                 perPage: Math.min(perPage, 20),
             });
         req
-            .then((r) => { if (!cancelled) setData(r); })
+            .then((r) => {
+                if (cancelled) return;
+                if (src !== 'anime' && year) {
+                    const y = Number(year);
+                    setData({ ...r, media: r.media.filter((m) => m.seasonYear === y) });
+                } else {
+                    setData(r);
+                }
+            })
             .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : 'Ошибка поиска'); })
             .finally(() => { if (!cancelled) setBusy(false); });
         return () => { cancelled = true; };

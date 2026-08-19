@@ -143,7 +143,7 @@ export interface NextItem {
     inListStatus: WatchStatus | null;
     source: 'shikimori' | 'tmdb';
     contentType: 'anime' | 'tv' | 'movie';
-    relation: 'sequel' | 'similar';
+    relation: 'sequel' | 'similar';   
 }
 
 export interface TmdbFullDetails extends NormalizedAnime {
