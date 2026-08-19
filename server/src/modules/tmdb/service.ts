@@ -43,10 +43,16 @@ interface TmdbList { page: number; total_pages: number; total_results: number; r
 
 // ========== Перевод TMDB → наш общий формат ==========
 
-function mapStatus(type: 'tv' | 'movie', status?: string): string {
-  if (type === 'movie') return status === 'Released' ? 'released' : 'anons';
-  if (status === 'Ended') return 'released';
-  if (status === 'Returning Series') return 'ongoing';
+function mapStatus(type: 'tv' | 'movie', status: string | undefined, date: string | null): string {
+  if (status) {
+    if (type === 'movie') return status === 'Released' ? 'released' : 'anons';
+    if (status === 'Ended') return 'released';
+    if (status === 'Returning Series') return 'ongoing';
+    return 'anons';
+  }
+  // В списочных ответах TMDB (search/recommendations/коллекции) статуса нет —
+  // выводим из даты: дата в прошлом → вышло, в будущем или нет даты → анонс
+  if (date) return date <= new Date().toISOString().slice(0, 10) ? 'released' : 'anons';
   return 'anons';
 }
 
@@ -73,7 +79,7 @@ function normalizeTmdb(item: TmdbItem, type: 'tv' | 'movie', gmap: Map<number, s
     },
     kind: type,
     score: item.vote_average ? Math.round(item.vote_average * 10) / 10 : null,
-    status: mapStatus(type, d.status),
+    status: mapStatus(type, d.status, date),
     episodes: type === 'movie' ? 1 : d.number_of_episodes ?? null,
     episodesAired: type === 'movie' ? 1 : d.number_of_episodes ?? null,
     airedOn: date,
