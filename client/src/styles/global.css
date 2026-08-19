@@ -361,3 +361,15 @@ img { max-width: 100%; display: block; }
 .pick__info { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 240px; }
 .pick__desc { color: var(--color-text-muted); font-size: .9rem; line-height: 1.5; }
 .pick__actions { display: flex; gap: 8px; }
+
+/* ============ Типы контента ============ */
+.src-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.anime-card { position: relative; }
+.type-badge {
+    position: absolute; top: 8px; left: 8px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: .7rem; font-weight: 600;
+    background: rgba(17, 17, 20, .72); color: #fff;
+}
+.type-badge--tv { background: rgba(45, 212, 191, .9); color: #052e2b; }
+.type-badge--movie { background: rgba(168, 85, 247, .9); color: #fff; }

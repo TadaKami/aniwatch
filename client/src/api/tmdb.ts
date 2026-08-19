@@ -1,0 +1,18 @@
+import { api } from './client';
+import type { GenreDto, NormalizedAnime, SearchResponse } from '../types/dto';
+
+export interface TmdbSearchParams {
+    type: 'tv' | 'movie';
+    query?: string;
+    year?: number;
+    genres?: number[];
+    country?: string;
+    page?: number;
+    perPage?: number;
+}
+
+export const tmdbApi = {
+    search: (p: TmdbSearchParams) => api.post<SearchResponse>('/tmdb/search', p),
+    genres: (type: 'tv' | 'movie') => api.get<{ genres: GenreDto[] }>(`/tmdb/genres?type=${type}`),
+    details: (type: 'tv' | 'movie', id: number) => api.get<NormalizedAnime>(`/tmdb/${type}/${id}`),
+};

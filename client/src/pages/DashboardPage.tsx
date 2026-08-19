@@ -45,7 +45,7 @@ export function StatsPanel() {
                             <h3>Сейчас смотрю</h3>
                             <div className="watching">
                                 {ov.watching.map((w) => (
-                                    <Link key={w.shikimoriId} to={`/anime/${w.shikimoriId}`} className="watching-row">
+                                    <Link key={w.shikimoriId} to={w.source === 'tmdb' ? `/title/tmdb/${w.shikimoriId}?type=${w.contentType}` : `/anime/${w.shikimoriId}`} className="watching-row">
                                         {w.coverImage && <img src={w.coverImage} alt="" className="watching-row__cover" />}
                                         <div className="watching-row__info">
                                             <div className="watching-row__title">{w.russian ?? w.name}</div>

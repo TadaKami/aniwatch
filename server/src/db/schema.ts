@@ -28,7 +28,9 @@ export const users = pgTable('User', {
 
 export const anime = pgTable('Anime', {
   id: uuid('id').defaultRandom().primaryKey(),
-  shikimoriId: integer('shikimoriId').notNull().unique(),
+  shikimoriId: integer('shikimoriId').notNull(),
+  source: text('source').notNull().default('shikimori'),      // 'shikimori' | 'tmdb'
+  contentType: text('contentType').notNull().default('anime'), // 'anime' | 'tv' | 'movie'
   name: text('name').notNull(),
   russian: text('russian'),
   originalName: text('originalName'),
@@ -44,7 +46,7 @@ export const anime = pgTable('Anime', {
   studios: text('studios'),
   createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
-});
+  },(t) => [uniqueIndex('Anime_source_ext_uq').on(t.source, t.shikimoriId)]);
 
 export const watchItems = pgTable(
   'WatchItem',

@@ -48,7 +48,7 @@ export function WatchlistPage(){
                         <div className="anime-grid">
                             {group.map((it) => (
                                 <div key={it.id} className="anime-card card">
-                                    <Link to={`/anime/${it.anime.shikimoriId}`}>
+                                    <Link to={it.anime.source === 'tmdb' ? `/title/tmdb/${it.anime.shikimoriId}?type=${it.anime.contentType}` : `/anime/${it.anime.shikimoriId}`}>
                                         {it.anime.coverImage && (
                                             <img className="anime-card__cover" src={it.anime.coverImage} alt="" />
                                         )}

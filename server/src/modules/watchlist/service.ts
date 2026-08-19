@@ -22,6 +22,8 @@ const addSchema = z.object({
   description: z.string().nullable().optional(),
   studios: z.string().nullable().optional(),
   status: z.enum(STATUSES).default('WANT_TO_WATCH'),
+  source: z.enum(['shikimori', 'tmdb']).default('shikimori'),
+  contentType: z.enum(['anime', 'tv', 'movie']).default('anime'),
 });
 
 const statusSchema = z.object({status: z.enum(STATUSES)});
@@ -48,6 +50,8 @@ export async function listWatchlist(userId: string) {
       anime: {
         id: animeTable.id,
         shikimoriId: animeTable.shikimoriId,
+        source: animeTable.source,
+        contentType: animeTable.contentType,
         name: animeTable.name,
         russian: animeTable.russian,
         coverImage: animeTable.coverImage,
@@ -82,6 +86,8 @@ export async function addToWatchlist(userId: string, input: unknown) {
 
     const animeValues = {
         name: p.name,
+        source: p.source,
+        contentType: p.contentType,
         russian: p.russian ?? null,
         coverImage: p.coverImage ?? null,
         kind: p.kind ?? null,
@@ -99,7 +105,7 @@ export async function addToWatchlist(userId: string, input: unknown) {
         .insert(animeTable)
         .values({shikimoriId: p.shikimoriId, ...animeValues})
         .onConflictDoUpdate({
-            target: animeTable.shikimoriId,
+            target: [animeTable.source, animeTable.shikimoriId],
             set: {...animeValues, updatedAt: new Date()},
         })
         .returning();

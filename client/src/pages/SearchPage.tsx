@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
-import { animeApi, type SearchParams } from '../api/anime';
+import { animeApi } from '../api/anime';
+import { tmdbApi } from '../api/tmdb';
 import { ApiError } from '../api/client';
 import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +13,17 @@ const PER_PAGE = [20, 30, 50];
 const SEASONS = ['winter', 'spring', 'summer', 'fall'];
 const KINDS = ['tv', 'movie', 'ova', 'ona', 'special', 'music'];
 const STATUSES = ['anons', 'ongoing', 'released'];
+const SRC_TABS = [
+    { id: 'anime', label: 'Аниме' },
+    { id: 'tv', label: 'Сериалы и дорамы' },
+    { id: 'movie', label: 'Фильмы' },
+] as const;
+const COUNTRIES = [
+    { code: 'KR', label: 'Корея' },
+    { code: 'CN', label: 'Китай' },
+    { code: 'JP', label: 'Япония' },
+    { code: 'TH', label: 'Тайланд' },
+];
 const STATUS_LABELS: Record<WatchStatus, string> = {
     WANT_TO_WATCH: 'Буду смотреть',
     WATCHING: 'Смотрю',
@@ -35,6 +47,9 @@ export function SearchPage() {
     const year = params.get('year') ?? '';
     const kind = params.get('kind') ?? '';
     const status = params.get('status') ?? '';
+    const srcRaw = params.get('src') ?? '';
+    const src = (srcRaw === 'tv' || srcRaw === 'movie' ? srcRaw : 'anime') as 'anime' | 'tv' | 'movie';
+    const country = params.get('country') ?? '';    
     const genresKey = genres.join(',');
 
     const [input, setInput] = useState(query);
@@ -46,29 +61,43 @@ export function SearchPage() {
     useEffect(()=>{setInput(query);}, [query]);
 
     useEffect(()=>{
-        animeApi.genres().then((r)=>setGenreList(r.genres)).catch(()=>setGenreList([]))
-    }, []);
+        if (src === 'anime') {
+            animeApi.genres().then((r) => setGenreList(r.genres)).catch(() => setGenreList([]));
+        } else {
+            tmdbApi.genres(src).then((r) => setGenreList(r.genres)).catch(() => setGenreList([]));
+        }
+    }, [src]);
 
-    useEffect(()=>{
+    useEffect(() => {
         let cancelled = false;
         setBusy(true);
         setError(null);
-        const body: SearchParams = {
-            query: query || undefined,
-            genres: genres.length ? genres : undefined,
-            season: season || undefined,
-            year: year ? Number(year) : undefined,
-            kind: kind || undefined,
-            status: status || undefined,
-            page,
-            perPage
-        };
-        animeApi.search(body)
-            .then((r)=>{if (!cancelled) setData(r);})
-            .catch((e)=>{if (!cancelled) setError(e instanceof ApiError ? e.message : 'Ошибка поиска')})
+        const req = src === 'anime'
+            ? animeApi.search({
+                query: query || undefined,
+                genres: genres.length ? genres : undefined,
+                season: season || undefined,
+                year: year ? Number(year) : undefined,
+                kind: kind || undefined,
+                status: status || undefined,
+                page,
+                perPage,
+            })
+            : tmdbApi.search({
+                type: src,
+                query: query || undefined,
+                genres: genres.length ? genres : undefined,
+                year: year ? Number(year) : undefined,
+                country: src === 'tv' && country ? country : undefined,
+                page,
+                perPage: Math.min(perPage, 20),
+            });
+        req
+            .then((r) => { if (!cancelled) setData(r); })
+            .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : 'Ошибка поиска'); })
             .finally(() => { if (!cancelled) setBusy(false); });
         return () => { cancelled = true; };
-    },[query, genresKey, season, year, kind, status, page, perPage]);
+    }, [src, query, genresKey, season, year, kind, status, country, page, perPage]);
 
     function updateParams(patch: Record<string, string | null>){
         const next = new URLSearchParams(params);
@@ -92,38 +121,64 @@ export function SearchPage() {
 
     return(
         <div className="search-page">
+            <div className="src-tabs">
+                {SRC_TABS.map((t) => (
+                    <button
+                        key={t.id}
+                        className={'genre-chip' + (src === t.id ? ' genre-chip--active' : '')}
+                        onClick={() => updateParams({ src: t.id === 'anime' ? null : t.id, genres: null })}
+                    >
+                       {t.label}
+                    </button>
+                ))}
+            </div>        
             <form className="search-form" onSubmit={onSubmit}>
-                <input className="search-form__input" value={input} onChange={(e)=> setInput(e.target.value)} placeholder="Поиск аниме… (например, Наруто)" />
+                <input className="search-form__input" value={input} onChange={(e)=> setInput(e.target.value)}
+                   placeholder={src === 'anime' ? 'Поиск аниме… (например, Наруто)' : src === 'tv' ? 'Поиск сериала/дорамы…' : 'Поиск фильма…'} />
                 <button type="submit" className="btn-accent">Найти</button>
             </form>
             <div className="filters card">
-                <div className="filters__row">
-                    <label>Сезон
-                        <select value={season} onChange={(e)=> updateParams({season: e.target.value || null})}>
-                            <option value="">-</option>
-                            {SEASONS.map((s)=> <option key={s} value={s}>{s}</option> )}
-                        </select>
-                    </label>
+                                <div className="filters__row">
+                    {src === 'anime' && (
+                        <label>Сезон
+                            <select value={season} onChange={(e)=> updateParams({season: e.target.value || null})}>
+                                <option value="">-</option>
+                                {SEASONS.map((s)=> <option key={s} value={s}>{s}</option> )}
+                            </select>
+                        </label>
+                    )}
                     <label>Год
                         <input type="number" placeholder="2024" value={year}
-                            onChange={(e) => updateParams({ year: e.target.value || null })} />                        
+                            onChange={(e) => updateParams({ year: e.target.value || null })} />
                     </label>
-                    <label>Формат
-                        <select value={kind} onChange={(e) => updateParams({ kind: e.target.value || null })}>
-                            <option value="">—</option>
-                            {KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
-                        </select>                        
-                    </label>
-                    <label>Статус
-                        <select value={status} onChange={(e) => updateParams({ status: e.target.value || null })}>
-                            <option value="">—</option>
-                            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>                        
-                    </label>
+                    {src === 'anime' && (
+                        <label>Формат
+                            <select value={kind} onChange={(e) => updateParams({ kind: e.target.value || null })}>
+                                <option value="">—</option>
+                                {KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+                            </select>
+                        </label>
+                    )}
+                    {src === 'anime' && (
+                        <label>Статус
+                            <select value={status} onChange={(e) => updateParams({ status: e.target.value || null })}>
+                                <option value="">—</option>
+                                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </label>
+                    )}
+                    {src === 'tv' && (
+                        <label>Страна
+                            <select value={country} onChange={(e) => updateParams({ country: e.target.value || null })}>
+                                <option value="">Все</option>
+                                {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+                            </select>
+                        </label>
+                    )}
                     <label>На странице
                         <select value={String(perPage)} onChange={(e) => updateParams({ perPage: e.target.value })}>
                             {PER_PAGE.map((n) => <option key={n} value={String(n)}>{n}</option>)}
-                        </select>                        
+                        </select>
                     </label>
                 </div>
                 <div className="filters__genres">
@@ -194,6 +249,8 @@ function AnimeCard({anime}: {anime: NormalizedAnime}){
                 description: anime.description,
                 studios: anime.studios,
                 status,
+                source: anime.source,
+                contentType: anime.contentType,
             });
             setAdded(true);
         } catch (e) {
@@ -203,7 +260,7 @@ function AnimeCard({anime}: {anime: NormalizedAnime}){
 
     return (
         <div className="anime-card card">
-            <Link to={`/anime/${anime.id}`}>
+            <Link to={anime.source === 'tmdb' ? `/title/tmdb/${anime.id}?type=${anime.contentType}` : `/anime/${anime.id}`}>
                 <img
                     className="anime-card__cover"
                     src={cover}
@@ -211,6 +268,9 @@ function AnimeCard({anime}: {anime: NormalizedAnime}){
                     loading="lazy"
                     onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }}
                 />
+                <span className={'type-badge' + (anime.contentType === 'tv' ? ' type-badge--tv' : anime.contentType === 'movie' ? ' type-badge--movie' : '')}>
+                    {anime.contentType === 'anime' ? 'Аниме' : anime.contentType === 'tv' ? 'Сериал' : 'Фильм'}
+                </span>                
                 <div className="anime-card__title">{anime.russian ?? anime.name}</div>                
             </Link>
             <div className="anime-card__meta">

@@ -20,6 +20,8 @@ export interface NormalizedGenre{
 
 export interface NormalizedAnime{
     id: number;
+    source: 'shikimori' | 'tmdb';
+    contentType: 'anime' | 'tv' | 'movie';
     name: string;
     russian: string | null;
     originalName: string | null;
@@ -40,7 +42,7 @@ export interface NormalizedAnime{
 }
 
 export interface PageInfo{
-    total: null;
+    total: number | null;
     currentPage: number;
     lastPage: number | null;
     hasNextPage: boolean;
@@ -53,6 +55,8 @@ export interface GenreDto {id: number; name: string; russian: string | null;}
 export interface WatchlistAnime {
     id: string;
     shikimoriId: number;
+    source: 'shikimori' | 'tmdb';
+    contentType: 'anime' | 'tv' | 'movie';
     name: string;
     russian: string | null;
     coverImage: string | null;
@@ -89,6 +93,8 @@ export interface WatchlistAddBody {
     description?: string | null;
     studios?: string | null;
     status?: WatchStatus;    
+    source?: 'shikimori' | 'tmdb';
+    contentType?: 'anime' | 'tv' | 'movie';
 }
 
 export interface GenreStat {genre: string; count: number;}
@@ -120,6 +126,8 @@ export interface StatsOverview {
         coverImage: string | null;
         watched: number;
         aired: number;
+        source?: 'shikimori' | 'tmdb';
+        contentType?: 'anime' | 'tv' | 'movie';        
     }[];
 }
 

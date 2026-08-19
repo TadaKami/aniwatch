@@ -9,6 +9,8 @@ export interface NormalizedGenre{
 
 export interface NormalizedAnime {
     id: number; // shikimoriId
+    source: 'shikimori' | 'tmdb';
+    contentType: 'anime' | 'tv' | 'movie';
     name: string;
     russian: string | null;
     originalName: string | null;
@@ -55,6 +57,8 @@ export function normalizeAnime(item: ShikimoriAnimeListItem | ShikimoriAnimeDeta
     const details = 'genres' in item ? (item as ShikimoriAnimeDetails) : null;
     return {
         id: item.id,
+        source: 'shikimori',
+        contentType: 'anime',
         name: String(item.name),
         russian: item.russian || null,
         originalName: String(item.name) || null,
