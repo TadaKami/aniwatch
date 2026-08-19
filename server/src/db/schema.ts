@@ -55,29 +55,10 @@ export const watchItems = pgTable(
     userId: uuid('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
     animeId: uuid('animeId').notNull().references(() => anime.id, { onDelete: 'cascade' }),
     status: watchStatusEnum('status').notNull().default('WANT_TO_WATCH'),
+    watchedEpisodes: integer('watchedEpisodes').notNull().default(0),
     note: text('note'),
     createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('WatchItem_user_anime_uq').on(t.userId, t.animeId)]
-);
-
-export const episodeProgress = pgTable(
-  'EpisodeProgress',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    watchItemId: uuid('watchItemId').notNull().references(() => watchItems.id, { onDelete: 'cascade' }),
-    seasonNumber: integer('seasonNumber').notNull().default(1),
-    episodeNumber: integer('episodeNumber').notNull(),
-    watchedAt: timestamp('watchedAt', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    uniqueIndex('EpisodeProgress_user_item_season_episode_uq').on(
-      t.userId,
-      t.watchItemId,
-      t.seasonNumber,
-      t.episodeNumber
-    ),
-  ]
 );

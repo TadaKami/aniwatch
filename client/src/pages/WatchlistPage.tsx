@@ -37,6 +37,13 @@ export function WatchlistPage(){
         setItems((prev) =>prev.filter((p)=> p.id !== it.id));
     }
 
+    async function plusOne(it: WatchlistItem) {
+        const r = await watchlistApi.setProgress(it.id, (it.anime.watchedEpisodes ?? 0) + 1);
+        setItems((prev) => prev.map((p) => p.id === it.id
+            ? { ...p, anime: { ...p.anime, watchedEpisodes: r.watchedEpisodes } }
+            : p));
+    }    
+
     return (
         <div className="watchlist">
             {GROUPS.map((g) => {
@@ -61,6 +68,17 @@ export function WatchlistPage(){
                                             )}
                                         </div>
                                         <div className="anime-card__title">{it.anime.russian ?? it.anime.name}</div>
+                                        {(() => {
+                                            const total = it.anime.episodesAired || it.anime.episodes || 0;
+                                            const w = it.anime.watchedEpisodes ?? 0;
+                                            if (total <= 0) return null;
+                                            const left = Math.max(total - w, 0);
+                                            return (
+                                                <div className={'progress-badge' + (left === 0 ? ' progress-badge--done' : '')}>
+                                                    {left === 0 ? '✓ просмотрено' : `Осталось ${left} эп.`}
+                                                </div>
+                                            );
+                                        })()}                                        
                                     </Link>
                                     <div className="anime-card__add">
                                         <select value={it.status} onChange={(e) => change(it, e.target.value as WatchStatus)}>
@@ -68,6 +86,9 @@ export function WatchlistPage(){
                                                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                                             ))}
                                         </select>
+                                        {it.status === 'WATCHING' && (
+                                            <button className="btn-ghost" onClick={() => plusOne(it)}>+1</button>
+                                        )}                                        
                                         <button className="btn-ghost" onClick={() => remove(it)}>✕</button>
                                     </div>
                                 </div>

@@ -79,9 +79,9 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
     .where(eq(watchItems.userId, userId));
 
   const [epRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(episodeProgress)
-    .where(eq(episodeProgress.userId, userId));
+    .select({ total: sql<number>`coalesce(sum(${watchItems.watchedEpisodes}), 0)::int` })
+    .from(watchItems)
+    .where(eq(watchItems.userId, userId));
 
   const progressRows = await db
     .select({ watchItemId: episodeProgress.watchItemId, count: sql<number>`count(*)::int` })
@@ -94,9 +94,12 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
     .select({
       id: watchItems.id,
       shikimoriId: animeTable.shikimoriId,
+      source: animeTable.source,
+      contentType: animeTable.contentType,
       russian: animeTable.russian,
       name: animeTable.name,
       coverImage: animeTable.coverImage,
+      watchedEpisodes: watchItems.watchedEpisodes,
       aired: animeTable.episodesAired,
       episodes: animeTable.episodes,
     })

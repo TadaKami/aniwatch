@@ -46,16 +46,22 @@ export function TmdbDetailPage() {
         tmdbApi.season(numId, season).then(setEps).catch(() => setEps([]));
     }, [numId, season, type]);
 
-    const isWatched = (ep: number) =>
-        data?.progress.some((p) => p.seasonNumber === season && p.episodeNumber === ep) ?? false;
+    const watched = data?.watchItem?.watchedEpisodes ?? 0;
+    const offsetBefore = data
+        ? data.seasons.filter((s) => s.season < season).reduce((a, s) => a + (s.episodeCount || 0), 0)
+        : 0;
+    const totalEpisodes = data
+        ? data.seasons.reduce((a, s) => a + (s.episodeCount || 0), 0) || (data.episodes ?? 0)
+        : 0;
+    const isWatched = (ep: number) => watched >= offsetBefore + ep;
 
-    async function toggleEpisode(ep: number) {
+    async function setGlobalWatched(n: number) {
         if (!data?.watchItem) return;
-        const body = { watchItemId: data.watchItem.id, seasonNumber: season, episodeNumber: ep };
-        if (isWatched(ep)) await watchlistApi.removeProgress(body);
-        else await watchlistApi.addProgress(body);
-        await refresh();
+        const r = await watchlistApi.setProgress(data.watchItem.id, Math.max(0, n));
+        setData({ ...data, watchItem: { ...data.watchItem, watchedEpisodes: r.watchedEpisodes } });
     }
+    const toggleEpisode = (ep: number) =>
+        setGlobalWatched(isWatched(ep) ? offsetBefore + ep - 1 : offsetBefore + ep);
 
     async function addToList() {
         if (!data) return;
@@ -81,7 +87,9 @@ export function TmdbDetailPage() {
         await refresh();
     }
 
-    const watchedInSeason = data?.progress.filter((p) => p.seasonNumber === season).length ?? 0;
+    const watchedInSeason = eps.length
+        ? Math.max(0, Math.min(watched - offsetBefore, eps.length))
+        : 0;
 
     return (
         <div className="detail">
@@ -132,7 +140,7 @@ export function TmdbDetailPage() {
                                     </select>
                                 </label>
                                 <span className="anime-card__meta">
-                                    Серии · {watchedInSeason}/{eps.length || '—'}
+                                    Серии · {watched}/{totalEpisodes || '—'}
                                 </span>
                             </div>
                             {!data.watchItem && (
