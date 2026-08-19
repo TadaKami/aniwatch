@@ -207,9 +207,9 @@ export function SearchPage() {
             {busy && <div className="empty"></div>}
 
             <div className="anime-grid">
-                {sorted?.media.map((a)=> <AnimeCard key={a.id} anime={a} />)}
+                {data?.media.map((a)=> <AnimeCard key={a.id} anime={a} />)}
             </div>
-            {sorted && sorted.media.length === 0 && !busy && (
+            {data && data.media.length === 0 && !busy && (
                 <div className="empty">Ничего не найдено — попробуйте изменить запрос или фильтры.</div>
             )}
 
