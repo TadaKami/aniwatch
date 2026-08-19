@@ -6,7 +6,10 @@ export function Layout(){
     return (
         <div className="layout">
             <header className="header">
-                <Link to="/" className='header__logo'>Episodex</Link>
+                <Link to="/" className='header__logo'>
+                    <img src="/favicon.png" alt="" className="header__logo-img" />
+                    <span>Episodex</span>
+                </Link>
                 <nav className="header__nav">
                     <NavLink to="/profile">Профиль</NavLink>
                     <NavLink to="/search">Поиск</NavLink>

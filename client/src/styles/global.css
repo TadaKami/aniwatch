@@ -121,11 +121,18 @@ img { max-width: 100%; display: block; }
     border-bottom: 1px solid var(--color-border);
 }
 .header__logo {
+    display: flex; align-items: center; gap: 8px;
     font-weight: 700; font-size: 1.15rem;
     background: linear-gradient(135deg, var(--color-accent), #a855f7);
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+.header__logo span {
+     background: linear-gradient(135deg, var(--color-accent), #a855f7);
+     -webkit-background-clip: text; background-clip: text;
+     -webkit-text-fill-color: transparent;
+ }
+.header__logo-img { width: 28px; height: 28px; border-radius: 8px; }
 .header__nav { display: flex; gap: 8px; margin-right: auto; }
 .header__nav a { color: var(--color-text-muted); padding: 6px 12px; border-radius: var(--radius-sm); }
 .header__nav a:hover { color: var(--color-text); background: var(--color-bg-elevated); }
