@@ -224,3 +224,15 @@ export async function pickTmdb(type: 'tv' | 'movie', userId?: string) {
   if (pool.length === 0) throw new HttpError(404, 'Nothing to pick');
   return normalizeTmdb(pool[Math.floor(Math.random() * pool.length)], type, new Map());
 }
+
+// ========== Сиквелы TMDB через коллекции (настоящие франшизы) ==========
+export async function getTmdbSequels(type: 'tv' | 'movie', id: number): Promise<NormalizedAnime[]> {
+  if (type !== 'movie') return []; // у сериалов продолжения — это сезоны внутри тайтла
+  const d = await tmdbGet<{ belongs_to_collection?: { id: number } | null }>(`/movie/${id}`);
+  const colId = d.belongs_to_collection?.id;
+  if (!colId) return [];
+  const c = await tmdbGet<{ parts?: TmdbItem[] }>(`/collection/${colId}`);
+  return (c.parts ?? [])
+    .filter((p) => p.id !== id)
+    .map((p) => normalizeTmdb(p, 'movie', new Map()));
+}

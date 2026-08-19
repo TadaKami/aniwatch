@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { animeApi } from '../api/anime';
@@ -81,6 +81,7 @@ export function SearchPage() {
                 year: year ? Number(year) : undefined,
                 kind: kind || undefined,
                 status: status || undefined,
+                sort: sort || undefined,
                 page,
                 perPage,
             })
@@ -90,6 +91,7 @@ export function SearchPage() {
                 genres: genres.length ? genres : undefined,
                 year: year ? Number(year) : undefined,
                 country: src === 'tv' && country ? country : undefined,
+                sort: sort || undefined,
                 page,
                 perPage: Math.min(perPage, 20),
             });
@@ -98,7 +100,7 @@ export function SearchPage() {
             .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : 'Ошибка поиска'); })
             .finally(() => { if (!cancelled) setBusy(false); });
         return () => { cancelled = true; };
-    }, [src, query, genresKey, season, year, kind, status, country, sort, page, perPage]);
+     },[src, query, genresKey, season, year, kind, status, country, sort, page, perPage]);
 
     function updateParams(patch: Record<string, string | null>){
         const next = new URLSearchParams(params);
@@ -119,6 +121,17 @@ export function SearchPage() {
         const next = genres.includes(id) ? genres.filter((g)=>g !== id) : [...genres, id];
         updateParams({genres: next.join(',') || null});
     }
+
+    const sorted = useMemo(() => {
+        if (!data) return null;
+        if (sort !== 'date_asc' && sort !== 'date_desc') return data;
+        const media = [...data.media].sort((a, b) => {
+            const da = a.airedOn ? Date.parse(a.airedOn) : Number.POSITIVE_INFINITY;
+            const db = b.airedOn ? Date.parse(b.airedOn) : Number.POSITIVE_INFINITY;
+            return sort === 'date_asc' ? da - db : db - da;
+        });
+        return { ...data, media };
+    }, [data, sort]);    
 
     return(
         <div className="search-page">
@@ -207,9 +220,9 @@ export function SearchPage() {
             {busy && <div className="empty"></div>}
 
             <div className="anime-grid">
-                {data?.media.map((a)=> <AnimeCard key={a.id} anime={a} />)}
+                {sorted?.media.map((a)=> <AnimeCard key={a.id} anime={a} />)}
             </div>
-            {data && data.media.length === 0 && !busy && (
+            {sorted && sorted.media.length === 0 && !busy && (
                 <div className="empty">Ничего не найдено — попробуйте изменить запрос или фильтры.</div>
             )}
 

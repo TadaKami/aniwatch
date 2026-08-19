@@ -3,6 +3,7 @@ import { db } from '../../db/client.js';
 import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
 import { getRelated, type RelatedAnime } from '../anime/service.js';
 import { getTmdbRelated } from '../tmdb/service.js';
+import { getTmdbSequels } from '../tmdb/service.js';
 
 export interface GenreStat {
   genre: string;
@@ -205,7 +206,7 @@ export async function getNext(userId: string): Promise<NextItem[]> {
     let related: RelatedAnime[] = [];
     try {
       related = isTmdb
-        ? await getTmdbRelated(rType, w.shikimoriId)
+        ? await getTmdbSequels(w.contentType === 'movie' ? 'movie' : 'tv', w.shikimoriId)
         : await getRelated(w.shikimoriId);
     } catch {
       continue;
@@ -213,7 +214,7 @@ export async function getNext(userId: string): Promise<NextItem[]> {
     for (const r of related) {
       if (r.id === w.shikimoriId || seen.has(`${rSource}:${r.id}`)) continue;
       const inList = statusByKey.get(`${rSource}:${r.id}`) ?? null;
-      if (inList === 'WATCHED') continue; // уже просмотрено
+      if (inList) continue;
       seen.add(`${rSource}:${r.id}`);
       out.push({ ...r, sourceTitle: w.russian ?? w.name, inListStatus: inList, source: rSource, contentType: rType });
     }
