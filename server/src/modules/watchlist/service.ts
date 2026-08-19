@@ -28,11 +28,7 @@ const addSchema = z.object({
 
 const statusSchema = z.object({status: z.enum(STATUSES)});
 
-const progressSchema = z.object({
-  watchItemId: z.string().uuid(),
-  seasonNumber: z.number().int().min(1).default(1),
-  episodeNumber: z.number().int().min(1),
-});
+const progressSchema = z.object({ watched: z.number().int().min(0).max(100000) });
 
 function isUniqueViolation(err: unknown): boolean {
     return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
@@ -47,6 +43,7 @@ export async function listWatchlist(userId: string) {
       note: watchItems.note,
       createdAt: watchItems.createdAt,
       updatedAt: watchItems.updatedAt,
+      watchedEpisodes: watchItems.watchedEpisodes,
       anime: {
         id: animeTable.id,
         shikimoriId: animeTable.shikimoriId,
@@ -146,54 +143,15 @@ export async function removeWatchItem(userId: string, itemId: string) {
     return { ok: true };
 }
 
-// ========== POST /watchlist/progress (идемпотентно) ==========
-export async function addProgress(userId: string, input: unknown) {
+// ========== PATCH /watchlist/:id/progress ==========
+export async function setProgress(userId: string, itemId: string, input: unknown) {
   const parsed = progressSchema.safeParse(input);
   if (!parsed.success) throw new HttpError(400, parsed.error.issues[0]?.message ?? 'Validation error');
-  const p = parsed.data;
-
-  const [item] = await db
-    .select({ id: watchItems.id })
-    .from(watchItems)
-    .where(and(eq(watchItems.id, p.watchItemId), eq(watchItems.userId, userId)))
-    .limit(1);
-  if (!item) throw new HttpError(404, 'Watch item not found');
-
-  const [created] = await db
-    .insert(episodeProgress)
-    .values({
-      userId,
-      watchItemId: p.watchItemId,
-      seasonNumber: p.seasonNumber,
-      episodeNumber: p.episodeNumber,
-    })
-    .onConflictDoNothing()
+  const [updated] = await db
+    .update(watchItems)
+    .set({ watchedEpisodes: parsed.data.watched, updatedAt: new Date() })
+    .where(and(eq(watchItems.id, itemId), eq(watchItems.userId, userId)))
     .returning();
-
-  if (created) {
-    // двигаем список в топ сортировки по updatedAt
-    await db.update(watchItems).set({ updatedAt: new Date() }).where(eq(watchItems.id, p.watchItemId));
-  }
-  return { ok: true, created: Boolean(created) };
-}
-
-// ========== DELETE /watchlist/progress ==========
-export async function removeProgress(userId: string, input: unknown) {
-  const parsed = progressSchema.safeParse(input);
-  if (!parsed.success) throw new HttpError(400, parsed.error.issues[0]?.message ?? 'Validation error');
-  const p = parsed.data;
-
-  const deleted = await db
-    .delete(episodeProgress)
-    .where(
-      and(
-        eq(episodeProgress.userId, userId),
-        eq(episodeProgress.watchItemId, p.watchItemId),
-        eq(episodeProgress.seasonNumber, p.seasonNumber),
-        eq(episodeProgress.episodeNumber, p.episodeNumber)
-      )
-    )
-    .returning();
-  if (deleted.length === 0) throw new HttpError(404, 'Progress not found');
-  return { ok: true };
+  if (!updated) throw new HttpError(404, 'Watch item not found');
+  return updated;
 }

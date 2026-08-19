@@ -27,17 +27,14 @@ watchlistRouter.post(
     })
 );
 
-watchlistRouter.post(
-    '/progress',
+watchlistRouter.patch(
+    '/:id/progress',
     asyncHandler(async (req, res) => {
-        res.json(await service.addProgress(requireUserId(req), req.body));
-    })
-);
-
-watchlistRouter.delete(
-    '/progress',
-    asyncHandler(async (req, res)=>{
-        res.json(await service.removeProgress(requireUserId(req), req.body));
+        const id = String(req.params.id);
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+            throw new HttpError(400, 'Invalid id');
+        }
+        res.json(await service.setProgress(requireUserId(req), id, req.body));
     })
 );
 

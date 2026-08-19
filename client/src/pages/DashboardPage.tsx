@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
+import { watchlistApi } from '../api/watchlist.js';
 import { useAuth } from '../context/AuthContext.js';
 import type { GenreStat, StatsOverview } from '../types/dto.js';
-import { Link } from 'react-router-dom';
 
 export function StatsPanel() {
     const { user } = useAuth();
@@ -16,7 +17,14 @@ export function StatsPanel() {
     }, [user]);
 
     const max = Math.max(1, ...stats.map((s) => s.count));
-    const actMax = Math.max(1, ...(ov?.activity.map((w) => w.count) ?? [1]));
+
+    async function plusOne(itemId: string, watched: number) {
+        const r = await watchlistApi.setProgress(itemId, watched + 1);
+        setOv((prev) => prev && {
+            ...prev,
+            watching: prev.watching.map((x) => x.itemId === itemId ? { ...x, watched: r.watchedEpisodes } : x),
+        });
+    }
 
     return (
         <div className="dashboard">
@@ -29,39 +37,34 @@ export function StatsPanel() {
                         <div className="stat-card"><b>{ov.totals.totalTitles}</b><span>всего в списках</span></div>
                     </div>
 
-                    <div className="card">
-                        <h3>Активность · 12 недель</h3>
-                        <div className="activity">
-                            {ov.activity.map((w) => (
-                                <div key={w.weekStart} className="act-col" title={`${w.weekStart}: ${w.count}`}>
-                                    <div className="act-bar" style={{ height: `${Math.max(4, (w.count / actMax) * 100)}%` }} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     {ov.watching.length > 0 && (
                         <div className="card">
                             <h3>Сейчас смотрю</h3>
                             <div className="watching">
                                 {ov.watching.map((w) => (
-                                    <Link key={w.shikimoriId} to={w.source === 'tmdb' ? `/title/tmdb/${w.shikimoriId}?type=${w.contentType}` : `/anime/${w.shikimoriId}`} className="watching-row">
-                                        {w.coverImage && <img src={w.coverImage} alt="" className="watching-row__cover" />}
-                                        <div className="watching-row__info">
-                                            <div className="watching-row__title">{w.russian ?? w.name}</div>
-                                            <div className="bar-row__track">
-                                                <div className="bar-row__fill"
-                                                    style={{ width: `${w.aired ? Math.min(100, (w.watched / w.aired) * 100) : 0}%` }} />
+                                    <div key={w.itemId} className="watching-row">
+                                        <Link
+                                            to={w.source === 'tmdb' ? `/title/tmdb/${w.shikimoriId}?type=${w.contentType}` : `/anime/${w.shikimoriId}`}
+                                            className="watching-row__link"
+                                        >
+                                            {w.coverImage && <img src={w.coverImage} alt="" className="watching-row__cover" />}
+                                            <div className="watching-row__info">
+                                                <div className="watching-row__title">{w.russian ?? w.name}</div>
+                                                <div className="bar-row__track">
+                                                    <div className="bar-row__fill"
+                                                        style={{ width: `${w.aired ? Math.min(100, (w.watched / w.aired) * 100) : 0}%` }} />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <span className="watching-row__count">{w.watched}/{w.aired || '—'}</span>
-                                    </Link>
+                                            <span className="watching-row__count">{w.watched}/{w.aired || '—'}</span>
+                                        </Link>
+                                        <button className="btn-ghost watching-plus" onClick={() => plusOne(w.itemId, w.watched)}>+1</button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
                     )}
                 </>
-            )}            
+            )}
             {stats.length === 0 && (
                 <div className="empty">Пока нет просмотренных тайтлов — отметьте что-нибудь как «Просмотрено».</div>
             )}

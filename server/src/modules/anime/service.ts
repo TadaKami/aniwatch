@@ -2,7 +2,7 @@ import { shikimoriGet, type ShikimoriGenreRaw, type ShikimoriAnimeDetails,type S
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db/client.js';
-import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
+import { anime as animeTable, watchItems } from '../../db/schema.js';
 import { HttpError } from '../../lib/http.js';
 import { normalizeAnime } from './normalize.js';
 import { env } from '../../config/env.js';
@@ -100,8 +100,7 @@ export async function getAnimeDetails(shikimoriId: number, userId?: string) {
   const raw = await shikimoriGet<ShikimoriAnimeDetails>(`/animes/${shikimoriId}`);
   const anime = normalizeAnime(raw);
 
-  let current: { id: string; status: string; note: string | null } | null = null;
-  let progress: { seasonNumber: number; episodeNumber: number }[] = [];
+  let current: { id: string; status: string; note: string | null; watchedEpisodes: number } | null = null;
 
   if (userId) {
     const [localAnime] = await db
@@ -112,21 +111,12 @@ export async function getAnimeDetails(shikimoriId: number, userId?: string) {
 
     if (localAnime) {
       const [item] = await db
-        .select({ id: watchItems.id, status: watchItems.status, note: watchItems.note })
+        .select({ id: watchItems.id, status: watchItems.status, note: watchItems.note, watchedEpisodes: watchItems.watchedEpisodes })
         .from(watchItems)
         .where(and(eq(watchItems.userId, userId), eq(watchItems.animeId, localAnime.id)))
         .limit(1);
 
-      if (item) {
-        current = item;
-        progress = await db
-          .select({
-            seasonNumber: episodeProgress.seasonNumber,
-            episodeNumber: episodeProgress.episodeNumber,
-          })
-          .from(episodeProgress)
-          .where(and(eq(episodeProgress.userId, userId), eq(episodeProgress.watchItemId, item.id)));
-      }
+      if (item) current = item;
     }
   }
 
@@ -134,7 +124,6 @@ export async function getAnimeDetails(shikimoriId: number, userId?: string) {
     anime,
     airedEpisodeCount: anime.episodesAired || anime.episodes || 0,
     watchItem: current,
-    progress,
   };
 }
 // ========== Доступность постера (HEAD + кэш) ==========

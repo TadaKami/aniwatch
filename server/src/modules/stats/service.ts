@@ -1,6 +1,6 @@
-import { and, desc, eq, sql, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
-import { anime as animeTable, episodeProgress, watchItems } from '../../db/schema.js';
+import { anime as animeTable, watchItems } from '../../db/schema.js';
 import { getRelated, getSimilarByGenres, type RelatedAnime } from '../anime/service.js';
 import { getTmdbRelated, getTmdbSequels } from '../tmdb/service.js';
 
@@ -36,7 +36,7 @@ export async function getGenreStats(userId: string): Promise<GenreStat[]> {
 
   const counts = new Map<string, number>();
   for (const genres of groups.values()) {
-    for (const genre of genres) {counts.set(genre, (counts.get(genre) ?? 0) + 1);    }
+    for (const genre of genres) counts.set(genre, (counts.get(genre) ?? 0) + 1);
   }
 
   return [...counts.entries()]
@@ -53,22 +53,17 @@ export interface StatsOverview {
     watchingTitles: number;
     episodesWatched: number;
   };
-  activity: { weekStart: string; count: number }[];
   watching: {
+    itemId: string;
     shikimoriId: number;
+    source: 'shikimori' | 'tmdb';
+    contentType: 'anime' | 'tv' | 'movie';
     russian: string | null;
     name: string;
     coverImage: string | null;
     watched: number;
     aired: number;
   }[];
-}
-
-function startOfWeekMs(d: Date): number {
-  const x = new Date(d);
-  const day = (x.getUTCDay() + 6) % 7; // понедельник = 0
-  x.setUTCHours(0, 0, 0, 0);
-  return x.getTime() - day * 24 * 3600 * 1000;
 }
 
 export async function getOverview(userId: string): Promise<StatsOverview> {
@@ -79,24 +74,20 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
     .where(eq(watchItems.userId, userId));
 
   const [epRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(episodeProgress)
-    .where(eq(episodeProgress.userId, userId));
-
-  const progressRows = await db
-    .select({ watchItemId: episodeProgress.watchItemId, count: sql<number>`count(*)::int` })
-    .from(episodeProgress)
-    .where(eq(episodeProgress.userId, userId))
-    .groupBy(episodeProgress.watchItemId);
-  const progressByItem = new Map(progressRows.map((r) => [r.watchItemId, r.count]));
+    .select({ total: sql<number>`coalesce(sum(${watchItems.watchedEpisodes}), 0)::int` })
+    .from(watchItems)
+    .where(eq(watchItems.userId, userId));
 
   const watchingRows = await db
     .select({
       id: watchItems.id,
       shikimoriId: animeTable.shikimoriId,
+      source: animeTable.source,
+      contentType: animeTable.contentType,
       russian: animeTable.russian,
       name: animeTable.name,
       coverImage: animeTable.coverImage,
+      watchedEpisodes: watchItems.watchedEpisodes,
       aired: animeTable.episodesAired,
       episodes: animeTable.episodes,
     })
@@ -105,25 +96,6 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
     .where(and(eq(watchItems.userId, userId), eq(watchItems.status, 'WATCHING')))
     .orderBy(desc(watchItems.updatedAt))
     .limit(6);
-
-  // активность: 12 недель
-  const WEEK_MS = 7 * 24 * 3600 * 1000;
-  const thisWeek = startOfWeekMs(new Date());
-  const since = new Date(thisWeek - 11 * WEEK_MS);
-  const marks = await db
-    .select({ watchedAt: episodeProgress.watchedAt })
-    .from(episodeProgress)
-    .where(and(eq(episodeProgress.userId, userId), sql`${episodeProgress.watchedAt} >= ${since}`));
-
-  const buckets = new Map<number, number>();
-  for (const m of marks) {
-    const idx = 11 - Math.floor((thisWeek - startOfWeekMs(m.watchedAt)) / WEEK_MS);
-    if (idx >= 0 && idx <= 11) buckets.set(idx, (buckets.get(idx) ?? 0) + 1);
-  }
-  const activity = Array.from({ length: 12 }, (_, i) => ({
-    weekStart: new Date(thisWeek - (11 - i) * WEEK_MS).toISOString().slice(0, 10),
-    count: buckets.get(i) ?? 0,
-  }));
 
   const groupStatuses = new Map<string, Set<string>>();
   for (const r of statusRows) {
@@ -138,28 +110,30 @@ export async function getOverview(userId: string): Promise<StatsOverview> {
   for (const s of groupStatuses.values()) {
     if (s.has('WATCHED')) watchedTitles++;
     if (s.has('WATCHING')) watchingTitles++;
-  }  
+  }
 
   return {
     totals: {
       totalTitles,
       watchedTitles,
       watchingTitles,
-      episodesWatched: epRow?.count ?? 0,
+      episodesWatched: epRow?.total ?? 0,
     },
-    activity,
     watching: watchingRows.map((w) => ({
+      itemId: w.id,
       shikimoriId: w.shikimoriId,
+      source: w.source,
+      contentType: w.contentType,
       russian: w.russian,
       name: w.name,
       coverImage: w.coverImage,
-      watched: progressByItem.get(w.id) ?? 0,
+      watched: w.watchedEpisodes,
       aired: w.aired || w.episodes || 0,
     })),
   };
 }
 
-// ========== «Что дальше»: непросмотренные сиквелы/онгоинги ==========
+// ========== «Что дальше»: продолжения + похожие ==========
 
 export interface NextItem extends RelatedAnime {
   sourceTitle: string;
@@ -171,18 +145,6 @@ export interface NextItem extends RelatedAnime {
 
 const nextCache = new Map<string, { data: NextItem[]; fetchedAt: number }>();
 const NEXT_TTL_MS = 5 * 60 * 1000;
-let genreIdMapCache: Map<string, number> | null = null;
-async function genreIdMap(): Promise<Map<string, number>> {
-  if (genreIdMapCache) return genreIdMapCache;
-  const list = await getGenres();
-  const m = new Map<string, number>();
-  for (const g of list) {
-    m.set(g.name.toLowerCase(), g.id);
-    if (g.russian) m.set(g.russian.toLowerCase(), g.id);
-  }
-  genreIdMapCache = m;
-  return m;
-}
 
 export async function getNext(userId: string): Promise<NextItem[]> {
   const cached = nextCache.get(userId);

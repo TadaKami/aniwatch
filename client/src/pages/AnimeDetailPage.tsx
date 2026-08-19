@@ -49,7 +49,7 @@ export function AnimeDetailPage(){
             genres: a.genres.map((g) => g.russian ?? g.name),
             description: a.description, studios: a.studios, status,
         });
-        setData({...data, watchItem: {id: item.id, status, note: null}});
+        setData({...data, watchItem: {id: item.id, status, note: null, watchedEpisodes: 0}});
     }
 
     async function changeStatus(s: WatchStatus) {
@@ -57,16 +57,15 @@ export function AnimeDetailPage(){
         if(data?.watchItem) await watchlistApi.update(data.watchItem.id, s);
     }
 
-    const isWatched = (ep: number) =>
-        data?.progress.some((p)=>p.seasonNumber === 1 && p.episodeNumber === ep) ?? false;
+    const watched = data?.watchItem?.watchedEpisodes ?? 0;
+    const isWatched = (ep: number) => watched >= ep;
 
-    async function toggleEpisode(ep: number) {
+    async function setWatched(n: number) {
         if (!data?.watchItem) return;
-        const body = { watchItemId: data.watchItem.id, seasonNumber: 1, episodeNumber: ep };
-        if (isWatched(ep)) await watchlistApi.removeProgress(body);
-        else await watchlistApi.addProgress(body);
-        await refresh();
+        const r = await watchlistApi.setProgress(data.watchItem.id, Math.max(0, n));
+        setData({ ...data, watchItem: { ...data.watchItem, watchedEpisodes: r.watchedEpisodes } });
     }
+    const toggleEpisode = (ep: number) => setWatched(isWatched(ep) ? ep - 1 : ep);    
 
     function Recommendations({ anime }: { anime: NormalizedAnime }) {
         const [recs, setRecs] = useState<NormalizedAnime[]>([]);
@@ -205,7 +204,7 @@ export function AnimeDetailPage(){
                     <FranchiseBlock currentId={data.anime.id} />
                     {data.airedEpisodeCount > 0 && (
                          <div className="detail__episodes card">
-                             <h3>Серии · {data.progress.length}/{data.airedEpisodeCount}</h3>
+                            <h3>Серии · {watched}/{data.airedEpisodeCount}</h3>
                             {!data.watchItem && (
                                 <p className="empty">Добавьте тайтл в список, чтобы отмечать просмотренные серии.</p>
                             )}                          

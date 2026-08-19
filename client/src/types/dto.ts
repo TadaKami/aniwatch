@@ -67,6 +67,7 @@ export interface WatchlistAnime {
     season: string | null;
     seasonYear: number | null;
     genres: string[] | null;    
+    watchedEpisodes: number;
 }
 
 export interface WatchlistItem {
@@ -102,9 +103,7 @@ export interface GenreStat {genre: string; count: number;}
 export interface AnimeDetailsResponse { 
     anime: NormalizedAnime; 
     airedEpisodeCount: number; 
-    watchItem: 
-        { id: string; status: WatchStatus; note: string | null } | null; 
-    progress: { seasonNumber: number; episodeNumber: number }[] 
+    watchItem: { id: string; status: WatchStatus; note: string | null; watchedEpisodes: number } | null;
 }
 
 export interface RelatedAnime {
@@ -118,8 +117,8 @@ export interface RelatedAnime {
 
 export interface StatsOverview {
     totals: { totalTitles: number; watchedTitles: number; watchingTitles: number; episodesWatched: number };
-    activity: { weekStart: string; count: number }[];
     watching: {
+        itemId: string;
         shikimoriId: number;
         russian: string | null;
         name: string;
@@ -127,7 +126,7 @@ export interface StatsOverview {
         watched: number;
         aired: number;
         source?: 'shikimori' | 'tmdb';
-        contentType?: 'anime' | 'tv' | 'movie';        
+        contentType?: 'anime' | 'tv' | 'movie';     
     }[];
 }
 
@@ -148,8 +147,7 @@ export interface NextItem {
 
 export interface TmdbFullDetails extends NormalizedAnime {
     seasons: { season: number; name: string | null; episodeCount: number }[];
-    watchItem: { id: string; status: WatchStatus; note: string | null } | null;
-    progress: { seasonNumber: number; episodeNumber: number }[];
+    watchItem: { id: string; status: WatchStatus; note: string | null; watchedEpisodes: number } | null;
 }
 
 export interface TmdbSeasonEpisode { episode: number; name: string | null; airedOn: string | null; }
