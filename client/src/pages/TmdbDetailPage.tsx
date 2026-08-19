@@ -87,10 +87,6 @@ export function TmdbDetailPage() {
         await refresh();
     }
 
-    const watchedInSeason = eps.length
-        ? Math.max(0, Math.min(watched - offsetBefore, eps.length))
-        : 0;
-
     return (
         <div className="detail">
             <button className="btn-ghost" onClick={() => navigate(-1)}>← Назад</button>
