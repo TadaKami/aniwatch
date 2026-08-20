@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Скобка «E» -->
+  <path d="M46 9 H21 Q13 9 13 17 V47 Q13 55 21 55 H40"
+        stroke="#29C8F0" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <!-- Плей -->
+  <path d="M27 21 L46 32 L27 43 Z" fill="#F0426E"/>
+  <!-- Галочка -->
+  <path d="M37 45 L45 53 L59 34"
+        stroke="#8EE6A1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Искры -->
+  <path d="M52 6 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6 Z" fill="#29C8F0"/>
+  <path d="M59 20 l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2 Z" fill="#F0426E"/>
+</svg>

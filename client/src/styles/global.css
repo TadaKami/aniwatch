@@ -132,7 +132,7 @@ img { max-width: 100%; display: block; }
      -webkit-background-clip: text; background-clip: text;
      -webkit-text-fill-color: transparent;
  }
-.header__logo-img { width: 28px; height: 28px; border-radius: 8px; }
+.header__logo-img { width: 28px; height: 28px; }
 .header__nav { display: flex; gap: 8px; margin-right: auto; }
 .header__nav a { color: var(--color-text-muted); padding: 6px 12px; border-radius: var(--radius-sm); }
 .header__nav a:hover { color: var(--color-text); background: var(--color-bg-elevated); }

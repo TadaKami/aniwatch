@@ -7,7 +7,7 @@ export function Layout(){
         <div className="layout">
             <header className="header">
                 <Link to="/" className='header__logo'>
-                    <img src="/favicon.png" alt="" className="header__logo-img" />
+                    <img src="/newlogo.svg" alt="" className="header__logo-img" />
                     <span>Episodex</span>
                 </Link>
                 <nav className="header__nav">
