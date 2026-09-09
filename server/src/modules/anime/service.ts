@@ -111,7 +111,13 @@ export async function getAnimeDetails(shikimoriId: number, userId?: string) {
 
     if (localAnime) {
       const [item] = await db
-        .select({ id: watchItems.id, status: watchItems.status, note: watchItems.note, watchedEpisodes: watchItems.watchedEpisodes })
+        .select({
+          id: watchItems.id,
+          status: watchItems.status,
+          note: watchItems.note,
+          rating: watchItems.rating,
+          watchedEpisodes: watchItems.watchedEpisodes,
+        })
         .from(watchItems)
         .where(and(eq(watchItems.userId, userId), eq(watchItems.animeId, localAnime.id)))
         .limit(1);

@@ -104,7 +104,7 @@ export interface GenreStat {genre: string; count: number;}
 export interface AnimeDetailsResponse { 
     anime: NormalizedAnime; 
     airedEpisodeCount: number; 
-    watchItem: { id: string; status: WatchStatus; note: string | null; watchedEpisodes: number } | null;
+    watchItem: { id: string; status: WatchStatus; note: string | null; rating: number | null; watchedEpisodes: number } | null;
 }
 
 export interface RelatedAnime {
@@ -148,7 +148,7 @@ export interface NextItem {
 
 export interface TmdbFullDetails extends NormalizedAnime {
     seasons: { season: number; name: string | null; episodeCount: number }[];
-    watchItem: { id: string; status: WatchStatus; note: string | null; watchedEpisodes: number } | null;
+    watchItem: { id: string; status: WatchStatus; note: string | null; rating: number | null; watchedEpisodes: number } | null;
 }
 
 export interface TmdbSeasonEpisode { episode: number; name: string | null; airedOn: string | null; }

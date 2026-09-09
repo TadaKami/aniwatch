@@ -175,7 +175,13 @@ export async function getTmdbFullDetails(type: 'tv' | 'movie', id: number, userI
       .limit(1);
     if (local) {
       const [item] = await db
-        .select({ id: watchItems.id, status: watchItems.status, note: watchItems.note, watchedEpisodes: watchItems.watchedEpisodes })
+        .select({
+          id: watchItems.id,
+          status: watchItems.status,
+          note: watchItems.note,
+          rating: watchItems.rating,
+          watchedEpisodes: watchItems.watchedEpisodes,
+        })
         .from(watchItems)
         .where(and(eq(watchItems.userId, userId), eq(watchItems.animeId, local.id)))
         .limit(1);
