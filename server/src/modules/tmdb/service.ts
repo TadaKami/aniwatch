@@ -5,6 +5,7 @@ import { anime as animeTable, watchItems } from '../../db/schema.js';
 import { HttpError } from '../../lib/http.js';
 import type { NormalizedAnime } from '../anime/normalize.js';
 import { tmdbGet, tmdbImage } from './tmdb.js';
+import type { ReviewDto } from '../anime/service.js';
 
 // ========== Жанры: кэш на 24 часа ==========
 
@@ -251,4 +252,19 @@ export async function getTmdbSequels(type: 'tv' | 'movie', id: number): Promise<
       n.airedOn = p.release_date ?? n.airedOn;
       return n;
     });
+}
+
+// ========== Отзывы TMDB ==========
+export async function getTmdbReviews(type: 'tv' | 'movie', id: number): Promise<ReviewDto[]> {
+  const d = await tmdbGet<{
+    results?: Array<{ author?: string; content?: string; author_details?: { rating?: number | null } }>;
+  }>(`/${type}/${id}/reviews`, { page: 1 });
+  return (d.results ?? [])
+    .slice(0, 10)
+    .map((r) => ({
+      author: r.author ?? 'Аноним',
+      text: (r.content ?? '').slice(0, 600),
+      score: typeof r.author_details?.rating === 'number' ? r.author_details.rating : null,
+    }))
+    .filter((r) => r.text);
 }
