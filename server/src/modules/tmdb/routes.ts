@@ -62,6 +62,16 @@ tmdbRouter.get(
   })
 );
 
+tmdbRouter.get(
+  '/:type/:id/reviews',
+  asyncHandler(async (req, res) => {
+    const type = req.params.type === 'movie' ? 'movie' : 'tv';
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, 'Invalid id');
+    res.json(await service.getTmdbReviews(type, id));
+  })
+);
+
 // ВАЖНО: после всех более специфичных маршрутов
 tmdbRouter.get(
   '/:type/:id',

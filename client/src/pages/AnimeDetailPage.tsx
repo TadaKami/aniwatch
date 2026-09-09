@@ -5,6 +5,8 @@ import { api, ApiError } from '../api/client';
 import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
 import type { AnimeDetailsResponse, WatchStatus, NormalizedAnime, RelatedAnime } from '../types/dto';
+import { NotesRating } from '../components/NotesRating';
+import { ReviewsBlock } from '../components/ReviewsBlock';
 
 const STATUS_LABELS: Record<WatchStatus, string> = {
     WANT_TO_WATCH: 'Буду смотреть',
@@ -231,6 +233,8 @@ export function AnimeDetailPage(){
                             dangerouslySetInnerHTML={{ __html: data.anime.descriptionHtml }}
                         />
                     )}
+                    {data.watchItem && <NotesRating watchItem={data.watchItem} />}
+                    <ReviewsBlock source="shikimori" id={data.anime.id} type="tv" />                    
                     <Recommendations anime={data.anime} />
                     <FranchiseBlock currentId={data.anime.id} />
                     {data.airedEpisodeCount > 0 && (

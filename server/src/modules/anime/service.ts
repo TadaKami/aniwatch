@@ -459,3 +459,28 @@ export async function getSimilarByGenres(shikimoriId: number, userId?: string, l
       image: { preview: m.image.preview, original: m.image.original },
     }));
 }
+
+// ========== Отзывы и комментарии ==========
+export interface ReviewDto { author: string; text: string; score: number | null; }
+
+export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
+  try {
+    const list = await shikimoriGet<Array<Record<string, any>>>(
+      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`);
+    const out = list
+      .map((r) => ({
+        author: String(r.user?.nickname ?? r.nickname ?? 'Аноним'),
+        text: String(r.body ?? r.text ?? '').slice(0, 600),
+        score: typeof r.score === 'number' ? r.score : null,
+      }))
+      .filter((r) => r.text);
+    if (out.length) return out;
+  } catch (e) { console.error('[SHIKIMORI] reviews failed:', (e as Error).message); }
+  try {
+    const list = await shikimoriGet<Array<Record<string, any>>>(
+      `/comments?resource=anime&resource_id=${shikimoriId}&limit=10`);
+    return list
+      .map((r) => ({ author: String(r.user?.nickname ?? 'Аноним'), text: String(r.body ?? '').slice(0, 600), score: null }))
+      .filter((r) => r.text);
+  } catch (e) { console.error('[SHIKIMORI] comments failed:', (e as Error).message); return []; }
+}

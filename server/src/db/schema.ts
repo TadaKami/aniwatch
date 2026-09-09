@@ -57,8 +57,30 @@ export const watchItems = pgTable(
     status: watchStatusEnum('status').notNull().default('WANT_TO_WATCH'),
     watchedEpisodes: integer('watchedEpisodes').notNull().default(0),
     note: text('note'),
+    rating: integer('rating'),
     createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('WatchItem_user_anime_uq').on(t.userId, t.animeId)]
+);
+export const userTops = pgTable('UserTop', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  contentType: text('contentType').notNull().default('any'),
+  createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const userTopItems = pgTable(
+  'UserTopItem',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    topId: uuid('topId').notNull().references(() => userTops.id, { onDelete: 'cascade' }),
+    animeId: uuid('animeId').notNull().references(() => anime.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('UserTopItem_top_anime_uq').on(t.topId, t.animeId)],
 );

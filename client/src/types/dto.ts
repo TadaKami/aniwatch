@@ -68,6 +68,7 @@ export interface WatchlistAnime {
     seasonYear: number | null;
     genres: string[] | null;    
     watchedEpisodes: number;
+    rating: number | null;
 }
 
 export interface WatchlistItem {
@@ -151,3 +152,15 @@ export interface TmdbFullDetails extends NormalizedAnime {
 }
 
 export interface TmdbSeasonEpisode { episode: number; name: string | null; airedOn: string | null; }
+
+export interface ReviewDto { author: string; text: string; score: number | null; }
+
+export interface TopItemDto {
+    id: string; topId: string; position: number; animeId: string; shikimoriId: number;
+    source: 'shikimori' | 'tmdb'; contentType: 'anime' | 'tv' | 'movie';
+    name: string; russian: string | null; coverImage: string | null; score: number | null;
+}
+export interface TopDto {
+    id: string; userId: string; name: string; description: string | null;
+    contentType: string; createdAt: string; updatedAt: string; items: TopItemDto[];
+}

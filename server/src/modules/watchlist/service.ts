@@ -26,7 +26,11 @@ const addSchema = z.object({
   contentType: z.enum(['anime', 'tv', 'movie']).default('anime'),
 });
 
-const statusSchema = z.object({status: z.enum(STATUSES)});
+const patchSchema = z.object({
+  status: z.enum(STATUSES).optional(),
+  note: z.string().trim().max(2000).nullable().optional(),
+  rating: z.number().int().min(0).max(10).nullable().optional(),
+});
 
 const progressSchema = z.object({ watched: z.number().int().min(0).max(100000) });
 
@@ -122,13 +126,19 @@ export async function addToWatchlist(userId: string, input: unknown) {
 // ========== PATCH /watchlist/:id (владелец) ==========
 
 export async function updateWatchItem(userId: string, itemId: string, input: unknown) {
-    const parsed = statusSchema.safeParse(input);
-    if (!parsed.success) throw new HttpError(400, 'Invalid status');
-    const [updated] = await db
-        .update(watchItems)
-        .set({ status: parsed.data.status, updatedAt: new Date() })
-        .where(and(eq(watchItems.id, itemId), eq(watchItems.userId, userId)))
-        .returning();
+  const parsed = patchSchema.safeParse(input);
+  if (!parsed.success) throw new HttpError(400, 'Invalid patch');
+  const p = parsed.data;
+  const [updated] = await db
+    .update(watchItems)
+    .set({
+      ...(p.status !== undefined ? { status: p.status } : {}),
+      ...(p.note !== undefined ? { note: p.note } : {}),
+      ...(p.rating !== undefined ? { rating: p.rating } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(watchItems.id, itemId), eq(watchItems.userId, userId)))
+    .returning();
     if (!updated) throw new HttpError(404, 'Watch item not found');
     return updated;
 }

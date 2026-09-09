@@ -423,3 +423,29 @@ img { max-width: 100%; display: block; }
 .watching-plus { flex: 0 0 auto; border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
 .progress-badge { margin-top: 6px; font-size: .75rem; color: var(--color-text-muted); }
 .progress-badge--done { color: var(--color-success); }
+
+ .type-badge--movie { background: rgba(168, 85, 247, .9); color: #fff; }
+
+/* ============ Отзывы ============ */
+.reviews { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.review { background: var(--color-bg-elevated); border-radius: var(--radius-md); padding: 12px; }
+.review__head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.review__score { color: var(--color-warning); }
+.review__text { font-size: .9rem; white-space: pre-wrap; }
+
+/* ============ Заметки и оценка ============ */
+.notes textarea {
+    width: 100%; min-height: 90px; padding: 10px 12px;
+    border-radius: var(--radius-md); border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated); color: var(--color-text);
+    font: inherit; resize: vertical;
+}
+
+/* ============ Топы ============ */
+.tops { display: flex; flex-direction: column; gap: 20px; }
+.top-card { display: flex; flex-direction: column; gap: 10px; }
+.top-item { display: flex; align-items: center; gap: 10px; }
+.top-item__pos { width: 28px; text-align: center; color: var(--color-text-muted); font-weight: 700; }
+.top-item__cover { width: 40px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); }
+.top-item__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-item__btns { display: flex; gap: 4px; }

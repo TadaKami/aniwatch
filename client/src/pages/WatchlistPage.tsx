@@ -28,7 +28,7 @@ export function WatchlistPage(){
     if (!user) return <div className="empty">Войдите, чтобы увидеть свои списки.</div>;
 
     async function change(it: WatchlistItem, s: WatchStatus) {
-        await watchlistApi.update(it.id, s);
+        await watchlistApi.update(it.id, { status: s });
         setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, status: s } : p)));
     }
 
@@ -68,6 +68,10 @@ export function WatchlistPage(){
                                             )}
                                         </div>
                                         <div className="anime-card__title">{it.anime.russian ?? it.anime.name}</div>
+                                        {it.anime.rating != null && (
+                                            <div className="anime-card__meta">Ваша оценка: ★{it.anime.rating}</div>
+                                        )}
+                                        {it.note && <div className="anime-card__meta">📝 {it.note.slice(0, 60)}</div>}                                        
                                         {(() => {
                                             const total = it.anime.episodesAired || it.anime.episodes || 0;
                                             const w = it.anime.watchedEpisodes ?? 0;

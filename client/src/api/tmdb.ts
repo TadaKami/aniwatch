@@ -1,6 +1,5 @@
 import { api } from './client';
-import type { GenreDto, NormalizedAnime, SearchResponse } from '../types/dto';
-import { TmdbFullDetails, TmdbSeasonEpisode } from '../types/dto';
+import type { GenreDto, NormalizedAnime, SearchResponse,TmdbFullDetails, TmdbSeasonEpisode, ReviewDto } from '../types/dto';
 
 export interface TmdbSearchParams {
     type: 'tv' | 'movie';
@@ -19,5 +18,6 @@ export const tmdbApi = {
     full: (type: 'tv' | 'movie', id: number) => api.get<TmdbFullDetails>(`/tmdb/${type}/${id}/full`),
     season: (id: number, n: number) => api.get<TmdbSeasonEpisode[]>(`/tmdb/tv/${id}/season/${n}`),
     related: (type: 'tv' | 'movie', id: number) => api.get<NormalizedAnime[]>(`/tmdb/${type}/${id}/related`),
+    reviews: (type: 'tv' | 'movie', id: number) => api.get<ReviewDto[]>(`/tmdb/${type}/${id}/reviews`),
     pick: (type: 'tv' | 'movie') => api.get<NormalizedAnime>(`/tmdb/pick/${type}`),
 };

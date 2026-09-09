@@ -5,6 +5,8 @@ import { tmdbApi } from '../api/tmdb';
 import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
 import type { NormalizedAnime, TmdbFullDetails, TmdbSeasonEpisode, WatchStatus } from '../types/dto';
+import { NotesRating } from '../components/NotesRating';
+import { ReviewsBlock } from '../components/ReviewsBlock';
 
 const STATUS_LABELS: Record<WatchStatus, string> = {
     WANT_TO_WATCH: 'Буду смотреть',
@@ -128,6 +130,8 @@ export function TmdbDetailPage() {
                     </div>
 
                     {data.description && <div className="detail__description card">{data.description}</div>}
+                    {data.watchItem && <NotesRating watchItem={data.watchItem} />}
+                    <ReviewsBlock source="tmdb" id={numId} type={type} />                  
 
                     <TmdbRecs type={type} id={numId} />
 

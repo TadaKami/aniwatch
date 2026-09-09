@@ -12,6 +12,7 @@ import { statsRouter } from './modules/stats/routes.js';
 import { watchlistRouter } from './modules/watchlist/routes.js';
 import { profileRouter } from './modules/profile/routes.js';
 import { tmdbRouter } from './modules/tmdb/routes.js';
+import { topsRouter } from './modules/tops/routes.js';
 
 export const app = express();
 app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
@@ -23,6 +24,7 @@ app.use('/api/watchlist', watchlistRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/tmdb',tmdbRouter);
+app.use('/api/tops', topsRouter);
 
 app.get('/api/health', async (_req, res) => {
   try {

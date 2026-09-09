@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
+import { TopsPage } from './pages/TopsPage';
 
 export function Layout(){
     const { user, logout } = useAuth();
@@ -15,6 +16,7 @@ export function Layout(){
                     <NavLink to="/search">Поиск</NavLink>
                     <NavLink to="/pick">Что посмотреть</NavLink>
                     {user && <NavLink to="/watchlist">Мои списки</NavLink>}
+                    {user && <NavLink to="/tops">Мои топы</NavLink>}
                 </nav>
                 <div className="header__auth">
                     {user?(
@@ -39,6 +41,7 @@ export function Layout(){
                 <NavLink to="/search"><i>🔍</i><span>Поиск</span></NavLink>
                 <NavLink to="/pick"><i>🎲</i><span>Подбор</span></NavLink>
                 {user && <NavLink to="/watchlist"><i>📚</i><span>Списки</span></NavLink>}
+                {user && <NavLink to="/tops"><i>🏆</i><span>Топы</span></NavLink>}
             </nav>            
         </div>
     );
