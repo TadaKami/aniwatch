@@ -68,7 +68,7 @@ export function AnimeDetailPage(){
             genres: a.genres.map((g) => g.russian ?? g.name),
             description: a.description, studios: a.studios, status,
         });
-        setData({...data, watchItem: {id: item.id, status, note: null, watchedEpisodes: 0}});
+        setData({...data, watchItem: {id: item.id, status, note: null, rating: null, watchedEpisodes: 0}});
     }
 
     async function changeStatus(s: WatchStatus) {
