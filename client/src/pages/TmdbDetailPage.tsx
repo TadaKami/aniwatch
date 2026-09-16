@@ -71,6 +71,17 @@ export function TmdbDetailPage() {
     const toggleEpisode = (ep: number) =>
         setGlobalWatched(isWatched(ep) ? offsetBefore + ep - 1 : offsetBefore + ep);
 
+    async function changeStatus(s: WatchStatus) {
+        setStatus(s);
+        // тайтла ещё нет в списке — статус применится при добавлении
+        if (!data?.watchItem) return;
+        try {
+            await watchlistApi.update(data.watchItem.id, { status: s });
+        } catch (e) {
+            setError(e instanceof ApiError ? e.message : 'Не удалось сменить статус');
+        }
+    }    
+
     async function addToList() {
         if (!data) return;
         await watchlistApi.add({
@@ -117,7 +128,7 @@ export function TmdbDetailPage() {
                             </div>
                             {user && !added && (
                                 <div className="detail__actions">
-                                    <select value={status} onChange={(e) => setStatus(e.target.value as WatchStatus)}>
+                                    <select value={status} onChange={(e) => changeStatus(e.target.value as WatchStatus)}>
                                         {(Object.keys(STATUS_LABELS) as WatchStatus[]).map((s) => (
                                             <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                                         ))}

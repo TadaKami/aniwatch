@@ -57,7 +57,9 @@ export function StatsPanel() {
                                             </div>
                                             <span className="watching-row__count">{w.watched}/{w.aired || '—'}</span>
                                         </Link>
-                                        <button className="btn-ghost watching-plus" onClick={() => plusOne(w.itemId, w.watched)}>+1</button>
+                                        {!(w.contentType !== 'movie' && w.aired > 0 && w.watched >= w.aired) && (
+                                            <button className="btn-ghost watching-plus" onClick={() => plusOne(w.itemId, w.watched)}>+1</button>
+                                        )}
                                     </div>
                                 ))}
                             </div>

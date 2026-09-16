@@ -73,7 +73,14 @@ export function AnimeDetailPage(){
 
     async function changeStatus(s: WatchStatus) {
         setStatus(s);
-        if(data?.watchItem) await watchlistApi.update(data.watchItem.id, { status: s });
+        if (data?.watchItem) {
+            try {
+                await watchlistApi.update(data.watchItem.id, { status: s });
+                setData({ ...data, watchItem: { ...data.watchItem, status: s } });
+            } catch (e) {
+                setError(e instanceof ApiError ? e.message : 'Не удалось сменить статус');
+            }
+        }
     }
 
     const watched = data?.watchItem?.watchedEpisodes ?? 0;

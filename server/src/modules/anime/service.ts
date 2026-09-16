@@ -495,5 +495,8 @@ export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
         score: null,
       }))
       .filter((r) => r.text);
-  } catch (e) { console.error('[SHIKIMORI] comments failed:', (e as Error).message); return []; }
+  } catch (e) {
+    console.error('[SHIKIMORI] comments failed:', (e as Error).message);
+    throw new HttpError(502, 'Reviews unavailable');
+  }
 }

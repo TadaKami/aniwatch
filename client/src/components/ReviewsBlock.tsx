@@ -6,11 +6,15 @@ import type { ReviewDto } from '../types/dto';
 export function ReviewsBlock({ source, id, type }: { source: 'shikimori' | 'tmdb'; id: number; type: 'tv' | 'movie' }) {
     const [open, setOpen] = useState(false);
     const [reviews, setReviews] = useState<ReviewDto[] | null>(null);
+    const [failed, setFailed] = useState(false);
 
     useEffect(() => {
         if (!open || reviews !== null) return;
+        let cancelled = false;
         const req = source === 'tmdb' ? tmdbApi.reviews(type, id) : animeApi.reviews(id);
-        req.then(setReviews).catch(() => setReviews([]));
+        req.then((r) => { if (!cancelled) setReviews(r); })
+            .catch(() => { if (!cancelled) { setReviews([]); setFailed(true); } });
+        return () => { cancelled = true; };
     }, [open, reviews, source, id, type]);
 
     return (
@@ -19,7 +23,13 @@ export function ReviewsBlock({ source, id, type }: { source: 'shikimori' | 'tmdb
                 {open ? 'Скрыть отзывы' : 'Отзывы и комментарии'}
             </button>
             {open && reviews === null && <div className="empty">Загружаем…</div>}
-            {open && reviews !== null && reviews.length === 0 && <div className="empty">Отзывов пока нет.</div>}
+            {open && reviews !== null && reviews.length === 0 && (
+                <div className="empty">
+                    {failed
+                        ? 'Источник отзывов сейчас недоступен.'
+                        : 'Отзывов пока нет.'}
+                </div>
+            )}
             {open && reviews !== null && reviews.length > 0 && (
                 <div className="reviews">
                     {reviews.map((r, i) => (

@@ -72,7 +72,7 @@ export function WatchlistPage(){
                                             <div className="anime-card__meta">Ваша оценка: ★{it.anime.rating}</div>
                                         )}
                                         {it.note && <div className="anime-card__meta">📝 {it.note.slice(0, 60)}</div>}                                        
-                                        {(() => {
+                                        {it.anime.contentType !== 'movie' && (() => {
                                             const total = it.anime.episodesAired || it.anime.episodes || 0;
                                             const w = it.anime.watchedEpisodes ?? 0;
                                             if (total <= 0) return null;
@@ -82,7 +82,7 @@ export function WatchlistPage(){
                                                     {left === 0 ? '✓ просмотрено' : `Осталось ${left} эп.`}
                                                 </div>
                                             );
-                                        })()}                                        
+                                        })()}                                      
                                     </Link>
                                     <div className="anime-card__add">
                                         <select value={it.status} onChange={(e) => change(it, e.target.value as WatchStatus)}>
@@ -91,7 +91,12 @@ export function WatchlistPage(){
                                             ))}
                                         </select>
                                         {it.status === 'WATCHING' && (
-                                            <button className="btn-ghost" onClick={() => plusOne(it)}>+1</button>
+                                            (() => {
+                                                const total = it.anime.episodesAired || it.anime.episodes || 0;
+                                                const w = it.anime.watchedEpisodes ?? 0;
+                                                if (it.anime.contentType !== 'movie' && total > 0 && w >= total) return null;
+                                                return <button className="btn-ghost" onClick={() => plusOne(it)}>+1</button>;
+                                            })()
                                         )}                                        
                                         <button className="btn-ghost" onClick={() => remove(it)}>✕</button>
                                     </div>

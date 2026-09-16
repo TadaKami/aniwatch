@@ -258,7 +258,7 @@ export async function getTmdbSequels(type: 'tv' | 'movie', id: number): Promise<
 export async function getTmdbReviews(type: 'tv' | 'movie', id: number): Promise<ReviewDto[]> {
   const d = await tmdbGet<{
     results?: Array<{ author?: string; content?: string; author_details?: { rating?: number | null } }>;
-  }>(`/${type}/${id}/reviews`, { page: 1 });
+  }>(`/${type}/${id}/reviews`, { page: 1, language: 'en-US' });
   return (d.results ?? [])
     .slice(0, 10)
     .map((r) => ({

@@ -13,22 +13,39 @@ export function TopsPage() {
     const [list, setList] = useState<WatchlistItem[]>([]);
     const [name, setName] = useState('');
     const [contentType, setContentType] = useState<'any' | 'anime' | 'tv' | 'movie'>('any');
+    const [err, setErr] = useState<string | null>(null);
 
-    const reload = useCallback(() => { topsApi.list().then(setTops).catch(() => setTops([])); }, []);
+    const reload = useCallback(() => {
+        topsApi.list().then(setTops).catch(() => setTops([]));
+        watchlistApi.list().then(setList).catch(() => setList([]));
+    }, []);
 
     useEffect(() => {
         if (!user) return;
         reload();
-        watchlistApi.list().then(setList).catch(() => setList([]));
     }, [user, reload]);
 
     if (!user) return <div className="empty">Войдите, чтобы создавать топы.</div>;
 
+    // Кандидаты: только «Просмотрено» и с оценкой
+    const rated = list.filter((w) => w.status === 'WATCHED' && w.anime.rating != null);
+
     async function create() {
-        if (!name.trim()) return;
-        await topsApi.create({ name: name.trim(), contentType });
-        setName('');
-        reload();
+        setErr(null);
+        if (!name.trim()) { setErr('Дайте топу название'); return; }
+        try {
+            await topsApi.create({ name: name.trim(), contentType });
+            setName('');
+            reload();
+        } catch (e) {
+            setErr(e instanceof Error ? e.message : 'Не удалось создать топ');
+        }
+    }
+
+    async function act(fn: () => Promise<unknown>) {
+        setErr(null);
+        try { await fn(); reload(); }
+        catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка операции'); }
     }
 
     async function move(top: TopDto, idx: number, dir: -1 | 1) {
@@ -36,8 +53,7 @@ export function TopsPage() {
         const j = idx + dir;
         if (j < 0 || j >= ids.length) return;
         [ids[idx], ids[j]] = [ids[j], ids[idx]];
-        await topsApi.reorder(top.id, ids);
-        reload();
+        await act(() => topsApi.reorder(top.id, ids));
     }
 
     return (
@@ -51,6 +67,8 @@ export function TopsPage() {
                     </select>
                     <button className="btn-accent" onClick={create}>Создать</button>
                 </div>
+                <p className="anime-card__meta">Наполнять топ можно тайтлами со статусом «Просмотрено» и с вашей оценкой.</p>
+                {err && <div className="form-error">{err}</div>}
             </div>
 
             {tops === null && <div className="empty">Загружаем…</div>}
@@ -58,13 +76,13 @@ export function TopsPage() {
 
             {tops?.map((top) => {
                 const inTop = new Set(top.items.map((i) => i.animeId));
-                const candidates = list.filter((w) =>
+                const candidates = rated.filter((w) =>
                     (top.contentType === 'any' || w.anime.contentType === top.contentType) && !inTop.has(w.anime.id));
                 return (
                     <div key={top.id} className="card top-card">
                         <div className="detail__actions">
                             <h3>{top.name} · {CT_LABELS[top.contentType] ?? top.contentType}</h3>
-                            <button className="btn-ghost" onClick={async () => { await topsApi.remove(top.id); reload(); }}>✕ Удалить топ</button>
+                            <button className="btn-ghost" onClick={() => act(() => topsApi.remove(top.id))}>✕ Удалить топ</button>
                         </div>
                         {top.items.length === 0 && <div className="empty">Топ пуст — добавьте тайтлы ниже.</div>}
                         {top.items.map((it, idx) => (
@@ -75,23 +93,31 @@ export function TopsPage() {
                                     to={it.source === 'tmdb' ? `/title/tmdb/${it.shikimoriId}?type=${it.contentType}` : `/anime/${it.shikimoriId}`}>
                                     {it.russian ?? it.name}
                                 </Link>
+                                <span className="anime-card__meta">★{it.score ?? '—'}</span>
                                 <div className="top-item__btns">
                                     <button className="btn-ghost" disabled={idx === 0} onClick={() => move(top, idx, -1)}>▲</button>
                                     <button className="btn-ghost" disabled={idx === top.items.length - 1} onClick={() => move(top, idx, 1)}>▼</button>
-                                    <button className="btn-ghost" onClick={async () => { await topsApi.removeItem(top.id, it.animeId); reload(); }}>✕</button>
+                                    <button className="btn-ghost" onClick={() => act(() => topsApi.removeItem(top.id, it.animeId))}>✕</button>
                                 </div>
                             </div>
                         ))}
                         {candidates.length > 0 && (
                             <div className="detail__actions">
                                 <select id={`add-${top.id}`}>
-                                    {candidates.map((w) => <option key={w.id} value={w.anime.id}>{w.anime.russian ?? w.anime.name}</option>)}
+                                    {candidates.map((w) => (
+                                        <option key={w.id} value={w.anime.id}>
+                                            {w.anime.russian ?? w.anime.name} · ★{w.anime.rating}
+                                        </option>
+                                    ))}
                                 </select>
-                                <button className="btn-accent" onClick={async () => {
+                                <button className="btn-accent" onClick={() => {
                                     const sel = document.getElementById(`add-${top.id}`) as HTMLSelectElement | null;
-                                    if (sel?.value) { await topsApi.addItem(top.id, sel.value); reload(); }
+                                    if (sel?.value) act(() => topsApi.addItem(top.id, sel.value));
                                 }}>Добавить</button>
                             </div>
+                        )}
+                        {candidates.length === 0 && top.items.length === 0 && (
+                            <p className="anime-card__meta">Нет подходящих тайтлов: отметьте тайтлы как «Просмотрено» и поставьте оценку.</p>
                         )}
                     </div>
                 );
