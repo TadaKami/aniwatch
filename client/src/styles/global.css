@@ -435,7 +435,28 @@ img { max-width: 100%; display: block; }
 .review__text { white-space: pre-line; }
 .review { border: 1px solid var(--color-border); }
 
-/* ============ Форма создания топа ============ */
+/* ============ Топы: витрина, просмотр, форма ============ */
+.tops { display: flex; flex-direction: column; gap: 20px; }
+.tops__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tops__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; align-items: start; }
+.top-card { display: flex; flex-direction: column; gap: 10px; color: inherit; }
+.top-card:hover { border-color: var(--color-accent); }
+.top-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.top-card__desc { color: var(--color-text-muted); font-size: .85rem; margin: 0; }
+.top-card__posters { display: flex; gap: 6px; overflow: hidden; }
+.top-card__posters img { width: 44px; height: 62px; object-fit: cover; border-radius: var(--radius-sm); flex: 0 0 auto; }
+.top-item { display: flex; align-items: center; gap: 10px; }
+.top-item__pos { width: 28px; text-align: center; color: var(--color-text-muted); font-weight: 700; }
+.anime-card__poster .top-item__pos {
+    position: absolute; top: 8px; left: 8px; width: auto; z-index: 1;
+    background: rgba(17, 17, 20, .8); color: #fff;
+    padding: 2px 8px; border-radius: 6px; font-size: .75rem;
+}
+.top-item__cover { width: 40px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); }
+.top-item__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-item__btns { display: flex; gap: 4px; }
+.top-pick { display: flex; gap: 10px; align-items: center; }
+.top-pick__cover { width: 44px; height: 62px; object-fit: cover; border-radius: var(--radius-sm); }
 .top-form { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
 .top-form__row { display: flex; gap: 8px; flex-wrap: wrap; }
 .tops input, .tops textarea, .tops select {
@@ -443,9 +464,8 @@ img { max-width: 100%; display: block; }
     border: 1px solid var(--color-border);
     background: var(--color-bg-elevated); color: var(--color-text); font: inherit;
 }
-.tops input:focus, .tops textarea:focus, .tops select:focus { outline: 2px solid var(--color-accent); border-color: transparent; }
 .tops textarea { min-height: 80px; resize: vertical; }
-.top-pick input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--color-accent); padding: 0; }
+.tops input:focus, .tops textarea:focus, .tops select:focus { outline: 2px solid var(--color-accent); border-color: transparent; }
 
 /* ============ Заметка и оценка ============ */
 .notes { display: flex; flex-direction: column; gap: 20px; }

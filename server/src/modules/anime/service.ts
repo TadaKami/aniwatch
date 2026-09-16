@@ -466,44 +466,77 @@ export async function getSimilarByGenres(shikimoriId: number, userId?: string, l
     }));
 }
 
-// ========== Отзывы (Shikimori: зеркало → официальный) ==========
+// ========== Отзывы и комментарии ==========
 export interface ReviewDto { author: string; text: string; score: number | null; }
 
 const cleanText = (s: unknown) => String(s ?? '')
-  .replace(/<[^>]+>/g, ' ').replace(/\*\*/g, '')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/\*\*/g, '')
   .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-  .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  .replace(/[ \t]+\n/g, '\n')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim();
+
+const reviewsCache = new Map<number, { data: ReviewDto[]; fetchedAt: number }>();
+const REVIEWS_TTL_OK = 24 * 60 * 60 * 1000;
+const REVIEWS_TTL_EMPTY = 5 * 60 * 1000;
 
 async function officialShikimoriGet<T>(pathQuery: string): Promise<T> {
-  const base = env.SHIKIMORI_OFFICIAL_API.replace(/\/$/, '');
-  const res = await fetch(`${base}${pathQuery}`, {
+  const res = await fetch(`https://shikimori.one/api${pathQuery}`, {
     headers: { 'User-Agent': env.SHIKIMORI_USER_AGENT, Accept: 'application/json' },
   });
   if (!res.ok) throw new ShikimoriError(res.status, `Shikimori official ${res.status}`);
   return (await res.json()) as T;
 }
 
-const mapReviews = (list: unknown): ReviewDto[] =>
-  (Array.isArray(list) ? list : [])
-    .map((r: Record<string, any>) => ({
-      author: String(r.author ?? r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-      text: cleanText(r.body ?? r.text ?? r.description).slice(0, 800),
-      score: typeof r.score === 'number' ? r.score : null,
-    }))
-    .filter((r: ReviewDto) => r.text);
+/** Сначала зеркало, затем официальный shikimori.one */
+async function shikimoriAny<T>(pathQuery: string): Promise<T> {
+  try {
+    return await shikimoriGet<T>(pathQuery);
+  } catch (e) {
+    console.error('[SHIKIMORI] mirror failed', pathQuery, (e as Error).message);
+    return officialShikimoriGet<T>(pathQuery);
+  }
+}
 
 export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
-  // 1) Зеркало
+  const cached = reviewsCache.get(shikimoriId);
+  if (cached && Date.now() - cached.fetchedAt < (cached.data.length ? REVIEWS_TTL_OK : REVIEWS_TTL_EMPTY)) {
+    return cached.data;
+  }
+
+  const out: ReviewDto[] = [];
+
+  // 1) Отзывы Shikimori = топики типа Review, привязанные к аниме
   try {
-    const out = mapReviews(await shikimoriGet<unknown>(
-      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`));
-    if (out.length) return out;
-  } catch (e) { console.error('[SHIKIMORI] mirror reviews failed:', (e as Error).message); }
-  // 2) Официальный Shikimori (зеркало может не иметь /reviews)
+    let topics = await shikimoriAny<Array<Record<string, any>>>(
+      `/topics?linked_id=${shikimoriId}&linked_type=Anime&type=Review&limit=10`);
+    if (!Array.isArray(topics) || topics.length === 0) {
+      const all = await shikimoriAny<Array<Record<string, any>>>(
+        `/topics?linked_id=${shikimoriId}&linked_type=Anime&limit=20`);
+      topics = (Array.isArray(all) ? all : [])
+        .filter((t) => String(t.type ?? '').toLowerCase().includes('review'));
+    }
+    for (const t of Array.isArray(topics) ? topics : []) {
+      const text = cleanText(t.html_body ?? t.body ?? '').slice(0, 800);
+      if (text) out.push({ author: String(t.user?.nickname ?? 'Аноним'), text, score: null });
+    }
+  } catch (e) { console.error('[SHIKIMORI] reviews(topics) failed:', (e as Error).message); }
+
+  // 2) Комментарии страницы аниме = комментарии к его основному топику (topic_id)
   try {
-    const out = mapReviews(await officialShikimoriGet<unknown>(
-      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`));
-    if (out.length) return out;
-  } catch (e) { console.error('[SHIKIMORI] official reviews failed:', (e as Error).message); }
-  return [];
+    const details = await shikimoriAny<ShikimoriAnimeDetails & { topic_id?: number }>(`/animes/${shikimoriId}`);
+    const topicId = details.topic_id;
+    if (topicId) {
+      const list = await shikimoriAny<Array<Record<string, any>>>(
+        `/comments?commentable_id=${topicId}&commentable_type=Topic&limit=10`);
+      for (const c of Array.isArray(list) ? list : []) {
+        const text = cleanText(c.html_body ?? c.body ?? '').slice(0, 400);
+        if (text) out.push({ author: String(c.user?.nickname ?? 'Аноним'), text, score: null });
+      }
+    }
+  } catch (e) { console.error('[SHIKIMORI] comments(topic) failed:', (e as Error).message); }
+
+  reviewsCache.set(shikimoriId, { data: out, fetchedAt: Date.now() });
+  return out;
 }
