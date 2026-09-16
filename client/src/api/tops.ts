@@ -10,5 +10,6 @@ export const topsApi = {
         api.post<{ ok: true }>(`/tops/${topId}/items`, { animeId }),
     removeItem: (topId: string, animeId: string) =>
         api.delete<{ ok: true }>(`/tops/${topId}/items/${animeId}`),
-    reorder: (topId: string, items: string[]) => api.patch<{ ok: true }>(`/tops/${topId}/reorder`, { items }),
+    reorder: (topId: string, items: string[]) =>
+        api.patch<{ ok: true }>(`/tops/${topId}/reorder`, { items }),
 };
