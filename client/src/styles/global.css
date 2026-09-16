@@ -431,7 +431,22 @@ img { max-width: 100%; display: block; }
 .review { background: var(--color-bg-elevated); border-radius: var(--radius-md); padding: 12px; }
 .review__head { display: flex; justify-content: space-between; margin-bottom: 6px; }
 .review__score { color: var(--color-warning); }
-.review__text { font-size: .9rem; white-space: pre-wrap; }
+ .review__text { font-size: .9rem; white-space: pre-wrap; }
+.review__text { white-space: pre-line; }
+.review { border: 1px solid var(--color-border); }
+
+/* ============ Топы ============ */
+.tops { display: flex; flex-direction: column; gap: 20px; }
+.tops__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tops__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.top-card { display: flex; flex-direction: column; gap: 10px; }
+.top-card__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.top-card__desc { color: var(--color-text-muted); font-size: .85rem; }
+.top-card__posters { display: flex; gap: 6px; }
+.top-card__posters img { width: 44px; height: 62px; object-fit: cover; border-radius: var(--radius-sm); }
+.top-pick { display: flex; gap: 10px; align-items: center; }
+.top-pick__cover { width: 44px; height: 62px; object-fit: cover; border-radius: var(--radius-sm); }
+.top-item__pos { position: absolute; top: 8px; left: 8px; background: rgba(17,17,20,.8); color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: .75rem; }
 
 /* ============ Заметка и оценка ============ */
 .notes { display: flex; flex-direction: column; gap: 20px; }
@@ -465,12 +480,3 @@ img { max-width: 100%; display: block; }
 }
 .notes textarea:focus { outline: 2px solid var(--color-accent); border-color: transparent; }
 .notes__actions { display: flex; align-items: center; gap: 12px; }
-
-/* ============ Топы ============ */
-.tops { display: flex; flex-direction: column; gap: 20px; }
-.top-card { display: flex; flex-direction: column; gap: 10px; }
-.top-item { display: flex; align-items: center; gap: 10px; }
-.top-item__pos { width: 28px; text-align: center; color: var(--color-text-muted); font-weight: 700; }
-.top-item__cover { width: 40px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); }
-.top-item__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.top-item__btns { display: flex; gap: 4px; }

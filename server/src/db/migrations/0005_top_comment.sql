@@ -1,0 +1,1 @@
+ALTER TABLE "UserTopItem" ADD COLUMN IF NOT EXISTS comment text;

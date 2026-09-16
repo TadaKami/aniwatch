@@ -38,9 +38,9 @@ export function WatchlistPage(){
     }
 
     async function plusOne(it: WatchlistItem) {
-        const r = await watchlistApi.setProgress(it.id, (it.anime.watchedEpisodes ?? 0) + 1);
+        const r = await watchlistApi.setProgress(it.id, (it.watchedEpisodes ?? 0) + 1);
         setItems((prev) => prev.map((p) => p.id === it.id
-            ? { ...p, anime: { ...p.anime, watchedEpisodes: r.watchedEpisodes } }
+            ? { ...p, watchedEpisodes: r.watchedEpisodes }
             : p));
     }    
 
@@ -74,7 +74,7 @@ export function WatchlistPage(){
                                         {it.note && <div className="anime-card__meta">📝 {it.note.slice(0, 60)}</div>}                                        
                                         {it.anime.contentType !== 'movie' && (() => {
                                             const total = it.anime.episodesAired || it.anime.episodes || 0;
-                                            const w = it.anime.watchedEpisodes ?? 0;
+                                            const w = it.watchedEpisodes ?? 0;
                                             if (total <= 0) return null;
                                             const left = Math.max(total - w, 0);
                                             return (
@@ -90,14 +90,13 @@ export function WatchlistPage(){
                                                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                                             ))}
                                         </select>
-                                        {it.status === 'WATCHING' && (
-                                            (() => {
-                                                const total = it.anime.episodesAired || it.anime.episodes || 0;
-                                                const w = it.anime.watchedEpisodes ?? 0;
-                                                if (it.anime.contentType !== 'movie' && total > 0 && w >= total) return null;
-                                                return <button className="btn-ghost" onClick={() => plusOne(it)}>+1</button>;
-                                            })()
-                                        )}                                        
+                                        {it.status === 'WATCHING' && it.anime.contentType !== 'movie' && (() => {
+                                            const total = it.anime.episodesAired || it.anime.episodes || 0;
+                                            const w = it.watchedEpisodes ?? 0;
+                                            if (total > 0 && w >= total) return null;
+                                             <button className="btn-ghost" onClick={() => plusOne(it)}>+1</button>
+                                            return <button className="btn-ghost" onClick={() => plusOne(it)}>+1</button>;
+                                        })()}
                                         <button className="btn-ghost" onClick={() => remove(it)}>✕</button>
                                     </div>
                                 </div>

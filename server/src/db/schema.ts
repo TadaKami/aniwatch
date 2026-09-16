@@ -80,6 +80,7 @@ export const userTopItems = pgTable(
     topId: uuid('topId').notNull().references(() => userTops.id, { onDelete: 'cascade' }),
     animeId: uuid('animeId').notNull().references(() => anime.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
+    comment: text('comment'),
     createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('UserTopItem_top_anime_uq').on(t.topId, t.animeId)],

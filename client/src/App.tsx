@@ -10,6 +10,8 @@ import { AnimeDetailPage } from './pages/AnimeDetailPage';
 import { PickPage } from './pages/PickPage';
 import { TmdbDetailPage } from './pages/TmdbDetailPage';
 import { TopsPage } from './pages/TopsPage';
+import { TopCreatePage } from './pages/TopCreatePage';
+import { TopViewPage } from './pages/TopViewPage';
 
 
 
@@ -27,6 +29,8 @@ export default function App(){
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/pick" element={<PickPage />} />
           <Route path="/tops" element={<TopsPage />} />
+          <Route path="/tops/new" element={<TopCreatePage />} />
+          <Route path="/tops/:id" element={<TopViewPage />} />
           <Route path="/title/tmdb/:id" element={<TmdbDetailPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

@@ -57,6 +57,11 @@ function mapStatus(type: 'tv' | 'movie', status: string | undefined, date: strin
   return 'anons';
 }
 
+const cleanText = (s: unknown) => String(s ?? '')
+  .replace(/<[^>]+>/g, ' ').replace(/\*\*/g, '')
+  .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+  .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+
 function normalizeTmdb(item: TmdbItem, type: 'tv' | 'movie', gmap: Map<number, string>): NormalizedAnime {
   const d = item as TmdbDetails;
   const ruName = item.name ?? item.title ?? '';
@@ -263,7 +268,7 @@ export async function getTmdbReviews(type: 'tv' | 'movie', id: number): Promise<
     .slice(0, 10)
     .map((r) => ({
       author: r.author ?? 'Аноним',
-      text: (r.content ?? '').slice(0, 600),
+      text: cleanText(r.content).slice(0, 800),
       score: typeof r.author_details?.rating === 'number' ? r.author_details.rating : null,
     }))
     .filter((r) => r.text);

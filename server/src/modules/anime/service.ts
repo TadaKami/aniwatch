@@ -468,30 +468,34 @@ export async function getSimilarByGenres(shikimoriId: number, userId?: string, l
 
 // ========== Отзывы и комментарии ==========
 export interface ReviewDto { author: string; text: string; score: number | null; }
+const cleanText = (s: unknown) => String(s ?? '')
+  .replace(/<[^>]+>/g, ' ')          // HTML-теги
+  .replace(/\*\*/g, '')              // markdown bold
+  .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+  .replace(/[ \t]+\n/g, '\n')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim();
 
 export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
-  const cleanHtml = (s: unknown) => String(s ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  // 1) REST /reviews
   try {
     const list = await shikimoriGet<Array<Record<string, any>>>(
       `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10&order=desc`);
     const out = (Array.isArray(list) ? list : [])
       .map((r) => ({
         author: String(r.author ?? r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-        text: cleanHtml(r.body ?? r.text).slice(0, 600),
+        text: cleanText(r.body ?? r.text).slice(0, 800),
         score: typeof r.score === 'number' ? r.score : null,
       }))
       .filter((r) => r.text);
     if (out.length) return out;
   } catch (e) { console.error('[SHIKIMORI] reviews failed:', (e as Error).message); }
-  // 2) Фолбэк: комментарии
   try {
     const list = await shikimoriGet<Array<Record<string, any>>>(
-      `/comments?resource=anime&resource_id=${shikimoriId}&limit=10&order=desc`);
+      `/comments?commentable_id=${shikimoriId}&commentable_type=Anime&limit=10`);
     return (Array.isArray(list) ? list : [])
       .map((r) => ({
         author: String(r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-        text: cleanHtml(r.body).slice(0, 600),
+        text: cleanText(r.body).slice(0, 800),
         score: null,
       }))
       .filter((r) => r.text);

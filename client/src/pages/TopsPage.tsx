@@ -1,127 +1,40 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { topsApi } from '../api/tops';
-import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
-import type { TopDto, WatchlistItem } from '../types/dto';
+import type { TopDto } from '../types/dto';
 
 const CT_LABELS: Record<string, string> = { any: 'Все', anime: 'Аниме', tv: 'Сериалы', movie: 'Фильмы' };
 
 export function TopsPage() {
     const { user } = useAuth();
     const [tops, setTops] = useState<TopDto[] | null>(null);
-    const [list, setList] = useState<WatchlistItem[]>([]);
-    const [name, setName] = useState('');
-    const [contentType, setContentType] = useState<'any' | 'anime' | 'tv' | 'movie'>('any');
-    const [err, setErr] = useState<string | null>(null);
-
-    const reload = useCallback(() => {
-        topsApi.list().then(setTops).catch(() => setTops([]));
-        watchlistApi.list().then(setList).catch(() => setList([]));
-    }, []);
-
-    useEffect(() => {
-        if (!user) return;
-        reload();
-    }, [user, reload]);
-
-    if (!user) return <div className="empty">Войдите, чтобы создавать топы.</div>;
-
-    // Кандидаты: только «Просмотрено» и с оценкой
-    const rated = list.filter((w) => w.status === 'WATCHED' && w.anime.rating != null);
-
-    async function create() {
-        setErr(null);
-        if (!name.trim()) { setErr('Дайте топу название'); return; }
-        try {
-            await topsApi.create({ name: name.trim(), contentType });
-            setName('');
-            reload();
-        } catch (e) {
-            setErr(e instanceof Error ? e.message : 'Не удалось создать топ');
-        }
-    }
-
-    async function act(fn: () => Promise<unknown>) {
-        setErr(null);
-        try { await fn(); reload(); }
-        catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка операции'); }
-    }
-
-    async function move(top: TopDto, idx: number, dir: -1 | 1) {
-        const ids = top.items.map((i) => i.animeId);
-        const j = idx + dir;
-        if (j < 0 || j >= ids.length) return;
-        [ids[idx], ids[j]] = [ids[j], ids[idx]];
-        await act(() => topsApi.reorder(top.id, ids));
-    }
+    const reload = useCallback(() => { topsApi.list().then(setTops).catch(() => setTops([])); }, []);
+    useEffect(() => { reload(); }, [reload]);
 
     return (
         <div className="tops">
-            <div className="card">
-                <h3>Новый топ</h3>
-                <div className="detail__actions">
-                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Название топа…" />
-                    <select value={contentType} onChange={(e) => setContentType(e.target.value as typeof contentType)}>
-                        {Object.entries(CT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                    <button className="btn-accent" onClick={create}>Создать</button>
-                </div>
-                <p className="anime-card__meta">Наполнять топ можно тайтлами со статусом «Просмотрено» и с вашей оценкой.</p>
-                {err && <div className="form-error">{err}</div>}
+            <div className="tops__head">
+                <h2>Топы пользователей</h2>
+                {user && <Link className="btn-accent" to="/tops/new">Создать топ</Link>}
             </div>
-
             {tops === null && <div className="empty">Загружаем…</div>}
             {tops !== null && tops.length === 0 && <div className="empty">Пока нет топов — создайте первый.</div>}
-
-            {tops?.map((top) => {
-                const inTop = new Set(top.items.map((i) => i.animeId));
-                const candidates = rated.filter((w) =>
-                    (top.contentType === 'any' || w.anime.contentType === top.contentType) && !inTop.has(w.anime.id));
-                return (
-                    <div key={top.id} className="card top-card">
-                        <div className="detail__actions">
-                            <h3>{top.name} · {CT_LABELS[top.contentType] ?? top.contentType}</h3>
-                            <button className="btn-ghost" onClick={() => act(() => topsApi.remove(top.id))}>✕ Удалить топ</button>
+            <div className="tops__grid">
+                {tops?.map((t) => (
+                    <Link key={t.id} to={`/tops/${t.id}`} className="top-card card">
+                        <div className="top-card__head">
+                            <b>{t.name}</b>
+                            <span className="anime-card__meta">{CT_LABELS[t.contentType] ?? t.contentType}</span>
                         </div>
-                        {top.items.length === 0 && <div className="empty">Топ пуст — добавьте тайтлы ниже.</div>}
-                        {top.items.map((it, idx) => (
-                            <div key={it.id} className="top-item">
-                                <span className="top-item__pos">{idx + 1}</span>
-                                {it.coverImage && <img className="top-item__cover" src={it.coverImage} alt="" />}
-                                <Link className="top-item__title"
-                                    to={it.source === 'tmdb' ? `/title/tmdb/${it.shikimoriId}?type=${it.contentType}` : `/anime/${it.shikimoriId}`}>
-                                    {it.russian ?? it.name}
-                                </Link>
-                                <span className="anime-card__meta">★{it.score ?? '—'}</span>
-                                <div className="top-item__btns">
-                                    <button className="btn-ghost" disabled={idx === 0} onClick={() => move(top, idx, -1)}>▲</button>
-                                    <button className="btn-ghost" disabled={idx === top.items.length - 1} onClick={() => move(top, idx, 1)}>▼</button>
-                                    <button className="btn-ghost" onClick={() => act(() => topsApi.removeItem(top.id, it.animeId))}>✕</button>
-                                </div>
-                            </div>
-                        ))}
-                        {candidates.length > 0 && (
-                            <div className="detail__actions">
-                                <select id={`add-${top.id}`}>
-                                    {candidates.map((w) => (
-                                        <option key={w.id} value={w.anime.id}>
-                                            {w.anime.russian ?? w.anime.name} · ★{w.anime.rating}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button className="btn-accent" onClick={() => {
-                                    const sel = document.getElementById(`add-${top.id}`) as HTMLSelectElement | null;
-                                    if (sel?.value) act(() => topsApi.addItem(top.id, sel.value));
-                                }}>Добавить</button>
-                            </div>
-                        )}
-                        {candidates.length === 0 && top.items.length === 0 && (
-                            <p className="anime-card__meta">Нет подходящих тайтлов: отметьте тайтлы как «Просмотрено» и поставьте оценку.</p>
-                        )}
-                    </div>
-                );
-            })}
+                        <div className="anime-card__meta">автор: {t.ownerName} · {t.items.length} тайтлов</div>
+                        {t.description && <p className="top-card__desc">{t.description}</p>}
+                        <div className="top-card__posters">
+                            {t.items.slice(0, 5).map((i) => i.coverImage ? <img key={i.id} src={i.coverImage} alt="" /> : null)}
+                        </div>
+                    </Link>
+                ))}
+            </div>
         </div>
     );
 }
