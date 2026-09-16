@@ -240,7 +240,7 @@ export function AnimeDetailPage(){
                             dangerouslySetInnerHTML={{ __html: data.anime.descriptionHtml }}
                         />
                     )}
-                    {data.watchItem && <NotesRating watchItem={data.watchItem} />}
+                    {data.watchItem && <NotesRating key={data.watchItem.id} watchItem={data.watchItem} />}
                     <ReviewsBlock source="shikimori" id={data.anime.id} type="tv" />                    
                     <Recommendations anime={data.anime} />
                     <FranchiseBlock currentId={data.anime.id} />

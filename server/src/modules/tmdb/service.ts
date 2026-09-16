@@ -265,11 +265,15 @@ export async function getTmdbReviews(type: 'tv' | 'movie', id: number): Promise<
     results?: Array<{ author?: string; content?: string; author_details?: { rating?: number | null } }>;
   }>(`/${type}/${id}/reviews`, { page: 1, language: 'en-US' });
   return (d.results ?? [])
-    .slice(0, 10)
-    .map((r) => ({
-      author: r.author ?? 'Аноним',
-      text: cleanText(r.content).slice(0, 800),
-      score: typeof r.author_details?.rating === 'number' ? r.author_details.rating : null,
-    }))
+    .slice(0, 20)
+    .map((r) => {
+      const score = typeof r.author_details?.rating === 'number' ? Math.round(r.author_details.rating) : null;
+      return {
+        author: r.author ?? 'Аноним',
+        text: cleanText(r.content).slice(0, 900),
+        score,
+        sentiment: score == null ? null : score >= 7 ? 'positive' : score >= 4 ? 'neutral' : 'negative',
+      };
+    })
     .filter((r) => r.text);
 }

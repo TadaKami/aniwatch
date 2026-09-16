@@ -154,7 +154,12 @@ export interface TmdbFullDetails extends NormalizedAnime {
 
 export interface TmdbSeasonEpisode { episode: number; name: string | null; airedOn: string | null; }
 
-export interface ReviewDto { author: string; text: string; score: number | null; }
+export interface ReviewDto {
+    author: string;
+    text: string;
+    score: number | null;
+    sentiment: 'positive' | 'neutral' | 'negative' | null;
+}
 
 export interface TopItemDto {
      id: string; topId: string; position: number; animeId: string; shikimoriId: number;

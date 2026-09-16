@@ -141,7 +141,7 @@ export function TmdbDetailPage() {
                     </div>
 
                     {data.description && <div className="detail__description card">{data.description}</div>}
-                    {data.watchItem && <NotesRating watchItem={data.watchItem} />}
+                    {data.watchItem && <NotesRating key={data.watchItem.id} watchItem={data.watchItem} />}
                     <ReviewsBlock source="tmdb" id={numId} type={type} />                  
 
                     <TmdbRecs type={type} id={numId} />
