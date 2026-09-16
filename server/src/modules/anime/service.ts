@@ -477,30 +477,20 @@ const cleanText = (s: unknown) => String(s ?? '')
   .trim();
 
 export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
+  const cleanHtml = (s: unknown) =>
+    String(s ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   try {
     const list = await shikimoriGet<Array<Record<string, any>>>(
-      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10&order=desc`);
-    const out = (Array.isArray(list) ? list : [])
+      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`);
+    return (Array.isArray(list) ? list : [])
       .map((r) => ({
         author: String(r.author ?? r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-        text: cleanText(r.body ?? r.text).slice(0, 800),
+        text: cleanHtml(r.body ?? r.text).slice(0, 600),
         score: typeof r.score === 'number' ? r.score : null,
       }))
       .filter((r) => r.text);
-    if (out.length) return out;
-  } catch (e) { console.error('[SHIKIMORI] reviews failed:', (e as Error).message); }
-  try {
-    const list = await shikimoriGet<Array<Record<string, any>>>(
-      `/comments?commentable_id=${shikimoriId}&commentable_type=Anime&limit=10`);
-    return (Array.isArray(list) ? list : [])
-      .map((r) => ({
-        author: String(r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-        text: cleanText(r.body).slice(0, 800),
-        score: null,
-      }))
-      .filter((r) => r.text);
   } catch (e) {
-    console.error('[SHIKIMORI] comments failed:', (e as Error).message);
-    throw new HttpError(502, 'Reviews unavailable');
+    console.error('[SHIKIMORI] reviews failed:', (e as Error).message);
+    return [];
   }
 }
