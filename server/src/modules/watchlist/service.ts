@@ -58,6 +58,7 @@ export async function listWatchlist(userId: string) {
         coverImage: animeTable.coverImage,
         kind: animeTable.kind,
         score: animeTable.score,
+        rating: watchItems.rating,
         episodes: animeTable.episodes,
         episodesAired: animeTable.episodesAired,
         season: animeTable.season,

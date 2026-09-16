@@ -13,6 +13,7 @@ const envSchema = z.object({
   SHIKIMORI_API_URL: z.string().url().default('https://shikimori.io/api'),
   SHIKIMORI_ORIGIN: z.string().url().default('https://shikimori.io'),
   SHIKIMORI_USER_AGENT: z.string().min(1, 'SHIKIMORI_USER_AGENT is required'),
+  SHIKIMORI_OFFICIAL_API: z.string().url().default('https://shikimori.one/api'),
   TEST_USER_EMAIL: z.string().email().optional(),
   TEST_USER_PASSWORD: z.string().min(6).optional(),
   TEST_USER_NAME: z.string().optional(),

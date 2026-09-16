@@ -466,31 +466,44 @@ export async function getSimilarByGenres(shikimoriId: number, userId?: string, l
     }));
 }
 
-// ========== Отзывы и комментарии ==========
+// ========== Отзывы (Shikimori: зеркало → официальный) ==========
 export interface ReviewDto { author: string; text: string; score: number | null; }
+
 const cleanText = (s: unknown) => String(s ?? '')
-  .replace(/<[^>]+>/g, ' ')          // HTML-теги
-  .replace(/\*\*/g, '')              // markdown bold
+  .replace(/<[^>]+>/g, ' ').replace(/\*\*/g, '')
   .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-  .replace(/[ \t]+\n/g, '\n')
-  .replace(/\n{3,}/g, '\n\n')
-  .trim();
+  .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+
+async function officialShikimoriGet<T>(pathQuery: string): Promise<T> {
+  const base = env.SHIKIMORI_OFFICIAL_API.replace(/\/$/, '');
+  const res = await fetch(`${base}${pathQuery}`, {
+    headers: { 'User-Agent': env.SHIKIMORI_USER_AGENT, Accept: 'application/json' },
+  });
+  if (!res.ok) throw new ShikimoriError(res.status, `Shikimori official ${res.status}`);
+  return (await res.json()) as T;
+}
+
+const mapReviews = (list: unknown): ReviewDto[] =>
+  (Array.isArray(list) ? list : [])
+    .map((r: Record<string, any>) => ({
+      author: String(r.author ?? r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
+      text: cleanText(r.body ?? r.text ?? r.description).slice(0, 800),
+      score: typeof r.score === 'number' ? r.score : null,
+    }))
+    .filter((r: ReviewDto) => r.text);
 
 export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
-  const cleanHtml = (s: unknown) =>
-    String(s ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  // 1) Зеркало
   try {
-    const list = await shikimoriGet<Array<Record<string, any>>>(
-      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`);
-    return (Array.isArray(list) ? list : [])
-      .map((r) => ({
-        author: String(r.author ?? r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-        text: cleanHtml(r.body ?? r.text).slice(0, 600),
-        score: typeof r.score === 'number' ? r.score : null,
-      }))
-      .filter((r) => r.text);
-  } catch (e) {
-    console.error('[SHIKIMORI] reviews failed:', (e as Error).message);
-    return [];
-  }
+    const out = mapReviews(await shikimoriGet<unknown>(
+      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`));
+    if (out.length) return out;
+  } catch (e) { console.error('[SHIKIMORI] mirror reviews failed:', (e as Error).message); }
+  // 2) Официальный Shikimori (зеркало может не иметь /reviews)
+  try {
+    const out = mapReviews(await officialShikimoriGet<unknown>(
+      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`));
+    if (out.length) return out;
+  } catch (e) { console.error('[SHIKIMORI] official reviews failed:', (e as Error).message); }
+  return [];
 }

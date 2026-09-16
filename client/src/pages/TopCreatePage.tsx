@@ -41,9 +41,9 @@ export function TopCreatePage() {
 
     return (
         <div className="tops">
-            <div className="card">
+            <div className="card top-form">
                 <h3>Новый топ</h3>
-                <div className="detail__actions">
+                <div className="top-form__row">
                     <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Название топа…" />
                     <select value={contentType} onChange={(e) => setContentType(e.target.value as typeof contentType)}>
                         {Object.entries(CT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -52,12 +52,14 @@ export function TopCreatePage() {
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Описание топа (необязательно)…" />
                 <p className="anime-card__meta">Наполнять топ можно тайтлами со статусом «Просмотрено» и с вашей оценкой.</p>
                 {err && <div className="form-error">{err}</div>}
-                <div className="detail__actions">
+                <div className="top-form__row">
                     <button className="btn-accent" disabled={busy || !name.trim()} onClick={submit}>Создать</button>
                 </div>
             </div>
 
-            {candidates.length === 0 && <div className="empty">Нет подходящих тайтлов: отметьте тайтлы как «Просмотрено» и поставьте оценку.</div>}
+            {candidates.length === 0 && (
+                <div className="empty">Нет подходящих тайтлов: отметьте тайтлы как «Просмотрено» и поставьте оценку.</div>
+            )}
             <div className="anime-grid">
                 {candidates.map((w) => (
                     <div key={w.anime.id} className="anime-card card">
