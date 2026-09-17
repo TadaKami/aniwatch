@@ -467,7 +467,7 @@ export async function getSimilarByGenres(shikimoriId: number, userId?: string, l
 }
 
 // ========== Отзывы (Shikimori) ==========
-export interface ReviewDto { author: string; text: string; score: number | null; }
+export interface ReviewDto { author: string; text: string; score: number | null; sentiment: 'positive' | 'neutral' | 'negative' | null; }
 
 const cleanText = (s: unknown) => String(s ?? '')
   .replace(/<[^>]+>/g, ' ')
@@ -477,14 +477,42 @@ const cleanText = (s: unknown) => String(s ?? '')
   .replace(/\n{3,}/g, '\n\n')
   .trim();
 
-const mapReviews = (list: unknown): ReviewDto[] =>
-  (Array.isArray(list) ? list : [])
-    .map((r: Record<string, any>) => ({
-      author: String(r.author ?? r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-      text: cleanText(r.body ?? r.text).slice(0, 800),
-      score: typeof r.score === 'number' ? r.score : null,
+function sentimentOf(score: number | null): ReviewDto['sentiment'] {
+  if (score == null) return null;
+  if (score >= 8) return 'positive';
+  if (score >= 5) return 'neutral';
+  return 'negative';
+}
+
+/** Ответ /reviews может быть массивом ИЛИ объектом с массивом внутри — понимаем обе формы */
+function mapReviewObjects(raw: unknown): ReviewDto[] {
+  const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? (Object.values(raw as object).find(Array.isArray) as unknown[] ?? []) : []);
+  return list
+    .map((r: Record<string, any>) => {
+      const score = typeof r.score === 'number' ? r.score : typeof r.overall === 'number' ? r.overall : null;
+      return {
+        author: String(r.user?.nickname ?? r.nickname ?? r.author ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
+        text: cleanText(r.body ?? r.text).slice(0, 900),
+        score,
+        sentiment: sentimentOf(score),
+      };
+    })
+    .filter((r) => r.text);
+}
+
+/** Отзывы на Shikimori — это топики типа Review, привязанные к тайтлу */
+function mapReviewTopics(raw: unknown): ReviewDto[] {
+  const list = Array.isArray(raw) ? raw : [];
+  return list
+    .filter((t: Record<string, any>) => String(t.type ?? '').toLowerCase().includes('review'))
+    .map((t: Record<string, any>) => ({
+      author: String(t.user?.nickname ?? t.nickname ?? 'Аноним'),
+      text: cleanText(t.body ?? t.html_body).slice(0, 900),
+      score: null,
+      sentiment: null,
     }))
     .filter((r) => r.text);
+}
 
 async function officialShikimoriGet<T>(pathQuery: string): Promise<T> {
   const res = await fetch(`https://shikimori.one/api${pathQuery}`, {
@@ -494,21 +522,50 @@ async function officialShikimoriGet<T>(pathQuery: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Пробует зеркало, затем официальный; возвращает null если оба недоступны */
+async function fetchJsonLenient(pathQuery: string): Promise<unknown> {
+  try {
+    return await shikimoriGet<unknown>(pathQuery);
+  } catch (e) {
+    console.error('[SHIKIMORI] mirror', pathQuery, (e as Error).message);
+  }
+  try {
+    return await officialShikimoriGet<unknown>(pathQuery);
+  } catch (e) {
+    console.error('[SHIKIMORI] official', pathQuery, (e as Error).message);
+  }
+  return null;
+}
+
+const reviewsCache = new Map<number, { data: ReviewDto[]; fetchedAt: number }>();
+const REVIEWS_TTL_OK = 24 * 60 * 60 * 1000;
+const REVIEWS_TTL_EMPTY = 10 * 60 * 1000;
+
 export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
-  // 1) Зеркало: REST /reviews
-  try {
-    const out = mapReviews(await shikimoriGet<unknown>(
-      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`));
-    if (out.length) return out;
-  } catch (e) { console.error('[SHIKIMORI] mirror reviews failed:', (e as Error).message); }
+  const cached = reviewsCache.get(shikimoriId);
+  if (cached && Date.now() - cached.fetchedAt < (cached.data.length ? REVIEWS_TTL_OK : REVIEWS_TTL_EMPTY)) {
+    return cached.data;
+  }
 
-  // 2) Официальный shikimori.one (зеркало может не иметь /reviews)
-  try {
-    const out = mapReviews(await officialShikimoriGet<unknown>(
-      `/reviews?resource=anime&resource_id=${shikimoriId}&limit=10`));
-    if (out.length) return out;
-  } catch (e) { console.error('[SHIKIMORI] official reviews failed:', (e as Error).message); }
+  let out: ReviewDto[] = [];
 
-  // Отзывов нет или источники недоступны — мягко возвращаем пустой список (без 502)
-  return [];
+  // 1) REST /reviews (зеркало → официальный)
+  const rawReviews = await fetchJsonLenient(`/reviews?resource=anime&resource_id=${shikimoriId}&limit=20`);
+  out = mapReviewObjects(rawReviews);
+  // диагностика: ответ пришёл, но распознать не удалось — логируем сырую форму
+  if (!out.length && rawReviews != null) {
+    console.error('[SHIKIMORI] reviews raw shape:', JSON.stringify(rawReviews).slice(0, 300));
+  }
+
+  // 2) Отзывы как топики типа Review (зеркало → официальный)
+  if (!out.length) {
+    const rawTopics = await fetchJsonLenient(`/topics?linked_id=${shikimoriId}&linked_type=Anime&limit=50`);
+    out = mapReviewTopics(rawTopics);
+    if (!out.length && Array.isArray(rawTopics) && rawTopics.length > 0) {
+      console.error('[SHIKIMORI] topics raw types:', JSON.stringify(rawTopics.map((t) => (t as { type?: unknown }).type)).slice(0, 300));
+    }
+  }
+
+  reviewsCache.set(shikimoriId, { data: out, fetchedAt: Date.now() });
+  return out;
 }
