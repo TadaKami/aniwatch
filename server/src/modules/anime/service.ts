@@ -466,22 +466,23 @@ export async function getSimilarByGenres(shikimoriId: number, userId?: string, l
     }));
 }
 
-// ========== Отзывы ==========
+// ========== Отзывы (Shikimori, парсинг HTML-страницы отзывов) ==========
 export interface ReviewDto {
   author: string;
   text: string;
   score: number | null;
   sentiment: 'positive' | 'neutral' | 'negative' | null;
+  date?: string | null;
 }
 
-const reviewsCache = new Map<number, { data: ReviewDto[]; fetchedAt: number }>();
 const REVIEWS_TTL_OK = 24 * 60 * 60 * 1000;
 const REVIEWS_TTL_EMPTY = 10 * 60 * 1000;
+const reviewsCache = new Map<number, { data: ReviewDto[]; fetchedAt: number }>();
 
-const cleanText = (s: unknown) => String(s ?? '')
+const stripTags = (s: string) => s
   .replace(/<script[\s\S]*?<\/script>/g, ' ')
   .replace(/<br\s*\/?>/gi, '\n')
-  .replace(/<\/(p|div)>/gi, '\n')
+  .replace(/<\/(p|div|li)>/gi, '\n')
   .replace(/<[^>]+>/g, ' ')
   .replace(/&nbsp;/g, ' ')
   .replace(/&amp;/g, '&')
@@ -491,91 +492,65 @@ const cleanText = (s: unknown) => String(s ?? '')
   .replace(/\n{3,}/g, '\n\n')
   .trim();
 
-function sentimentOfScore(score: number | null): ReviewDto['sentiment'] {
-  if (score == null) return null;
-  if (score >= 8) return 'positive';
-  if (score >= 5) return 'neutral';
-  return 'negative';
-}
+const SENTIMENT_MAP: Array<[RegExp, ReviewDto['sentiment']]> = [
+  [/положительн/i, 'positive'],
+  [/нейтральн/i, 'neutral'],
+  [/отрицательн/i, 'negative'],
+];
 
-function mapReviewObjects(raw: unknown): ReviewDto[] {
-  const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? (Object.values(raw as object).find(Array.isArray) as unknown[] ?? []) : []);
-  return list
-    .map((r: Record<string, any>) => {
-      const score = typeof r.score === 'number' ? r.score : typeof r.overall === 'number' ? r.overall : null;
-      return {
-        author: String(r.author ?? r.user?.nickname ?? r.nickname ?? (r.user_id ? `Юзер #${r.user_id}` : 'Аноним')),
-        text: cleanText(r.body ?? r.text).slice(0, 900),
-        score,
-        sentiment: sentimentOfScore(score),
-      };
-    })
-    .filter((r) => r.text);
-}
-
-const SENTIMENT_WORD_RE = /(positive|neutral|negative|положительн|нейтральн|отрицательн)/i;
-function sentimentOfWord(block: string): ReviewDto['sentiment'] {
-  const m = SENTIMENT_WORD_RE.exec(block);
-  if (!m) return null;
-  const w = m[1].toLowerCase();
-  if (w.startsWith('positive') || w.startsWith('положительн')) return 'positive';
-  if (w.startsWith('neutral') || w.startsWith('нейтральн')) return 'neutral';
-  return 'negative';
-}
-
+/** Режем страницу по никам авторов: каждый отзыв = сегмент от своего ника до следующего ника. */
 function parseReviewsHtml(html: string): ReviewDto[] {
-  const blocks = html.split(/<div[^>]*class="[^"]*\breview\b[^"]*"/i).slice(1);
+  // обрезаем секцию комментариев, чтобы не тянуть её как отзывы
+  const cut = html.search(/<h2[^>]*>\s*Комментарии/i);
+  const page = cut > 0 ? html.slice(0, cut) : html;
+
+  const nickRe = /<a[^>]*class="[^"]*nickname[^"]*"[^>]*>([^<]+)<\/a>/gi;
+  const matches = [...page.matchAll(nickRe)];
   const out: ReviewDto[] = [];
-  for (const b of blocks) {
-    const nick = /class="[^"]*\bnickname\b[^"]*"[^>]*>([^<]+)</i.exec(b)?.[1]?.trim();
-    const sentiment = sentimentOfWord(b);
-    let text = cleanText(b);
-    if (nick) text = text.replace(nick, ' ').trim();
-    text = text.replace(/(positive|neutral|negative|положительный|нейтральный|отрицательный)/gi, ' ').replace(/[ \t]{2,}/g, ' ').trim();
+
+  for (let i = 0; i < matches.length && out.length < 20; i++) {
+    const start = matches[i].index! + matches[i][0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index! : page.length;
+    const segment = page.slice(start, end);
+    const author = matches[i][1].trim();
+    if (!author) continue;
+
+    let sentiment: ReviewDto['sentiment'] = null;
+    for (const [re, val] of SENTIMENT_MAP) {
+      if (re.test(segment)) { sentiment = val; break; }
+    }
+
+    const dateMatch = /(\d{1,2}\s[а-яёА-ЯЁ]+\s\d{4})/.exec(segment);
+    let bodyHtml = segment;
+    if (dateMatch) bodyHtml = segment.slice(segment.indexOf(dateMatch[0]) + dateMatch[0].length);
+
+    const text = stripTags(bodyHtml)
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && l !== '>' && !/^к отзыву/i.test(l) && !/^Написать отзыв/i.test(l) && !/^Все отзывы/i.test(l))
+      .join('\n')
+      .trim();
     if (!text) continue;
-    out.push({ author: nick || 'Аноним', text: text.slice(0, 900), score: null, sentiment });
+
+    out.push({ author, text: text.slice(0, 1200), score: null, sentiment, date: dateMatch ? dateMatch[1] : null });
   }
   return out;
 }
 
-async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': env.SHIKIMORI_USER_AGENT, Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' },
-  });
-  if (!res.ok) throw new ShikimoriError(res.status, `Shikimori html ${res.status}`);
-  return await res.text();
-}
-
-async function officialShikimoriGet<T>(pathQuery: string): Promise<T> {
-  const res = await fetch(`https://shikimori.one/api${pathQuery}`, {
-    headers: { 'User-Agent': env.SHIKIMORI_USER_AGENT, Accept: 'application/json' },
-  });
-  if (!res.ok) throw new ShikimoriError(res.status, `Shikimori official ${res.status}`);
-  return (await res.json()) as T;
-}
-
 export async function getReviews(shikimoriId: number): Promise<ReviewDto[]> {
   const cached = reviewsCache.get(shikimoriId);
-  if (cached && Date.now() - cached.fetchedAt < (cached.data.length ? REVIEWS_TTL_OK : REVIEWS_TTL_EMPTY)) return cached.data;
-
-  let out: ReviewDto[] = [];
-  // 1) REST /reviews (зеркало)
-  try {
-    out = mapReviewObjects(await shikimoriGet<unknown>(`/reviews?resource=anime&resource_id=${shikimoriId}&limit=20`));
-  } catch (e) { console.error('[SHIKIMORI] reviews rest failed:', (e as Error).message); }
-  // 2) HTML-страница отзывов (зеркало) — основной рабочий путь
-  if (!out.length) {
-    try {
-      const html = await fetchHtml(`${env.SHIKIMORI_ORIGIN.replace(/\/$/, '')}/animes/${shikimoriId}/reviews`);
-      out = parseReviewsHtml(html);
-      if (!out.length) console.error('[SHIKIMORI] reviews html parsed 0, head:', html.slice(0, 300));
-    } catch (e) { console.error('[SHIKIMORI] reviews html failed:', (e as Error).message); }
+  if (cached && Date.now() - cached.fetchedAt < (cached.data.length ? REVIEWS_TTL_OK : REVIEWS_TTL_EMPTY)) {
+    return cached.data;
   }
-  // 3) Официальный REST /reviews
-  if (!out.length) {
-    try {
-      out = mapReviewObjects(await officialShikimoriGet<unknown>(`/reviews?resource=anime&resource_id=${shikimoriId}&limit=20`));
-    } catch (e) { console.error('[SHIKIMORI] official reviews failed:', (e as Error).message); }
+  let out: ReviewDto[] = [];
+  try {
+    const origin = env.SHIKIMORI_ORIGIN.replace(/\/$/, '');
+    const res = await fetch(`${origin}/animes/${shikimoriId}/reviews`, {
+      headers: { 'User-Agent': env.SHIKIMORI_USER_AGENT, Accept: 'text/html,application/xhtml+xml' },
+    });
+    if (res.ok) out = parseReviewsHtml(await res.text());
+  } catch (e) {
+    console.error('[SHIKIMORI] reviews html failed:', (e as Error).message);
   }
   reviewsCache.set(shikimoriId, { data: out, fetchedAt: Date.now() });
   return out;

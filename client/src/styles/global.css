@@ -426,18 +426,32 @@ img { max-width: 100%; display: block; }
 
  .type-badge--movie { background: rgba(168, 85, 247, .9); color: #fff; }
 
-/* ============ Отзывы: сводка и тональность ============ */
-.review-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+/* ============ Отзывы ============ */
+.reviews-card { display: flex; flex-direction: column; gap: 14px; }
+.review-summary { display: flex; flex-wrap: wrap; gap: 8px; }
 .review-badge { padding: 3px 10px; border-radius: 999px; font-size: .75rem; font-weight: 600; }
 .review-badge--all { background: rgba(142,142,147,.15); color: var(--color-text-muted); }
 .review-badge--positive { background: rgba(52,199,89,.15); color: var(--color-success); }
 .review-badge--neutral { background: rgba(45,212,191,.15); color: #2dd4bf; }
 .review-badge--negative { background: rgba(255,59,48,.15); color: var(--color-error); }
-.review { border-left: 3px solid transparent; }
+
+.reviews { display: flex; flex-direction: column; gap: 12px; }
+.review {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+}
 .review--positive { border-left-color: var(--color-success); }
 .review--neutral { border-left-color: #2dd4bf; }
 .review--negative { border-left-color: var(--color-error); }
-.review__head-right { display: flex; align-items: center; gap: 8px; }
+.review__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.review__author { font-weight: 700; }
+.review__head-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.review__score { color: var(--color-warning); font-weight: 600; }
+.review__date { color: var(--color-text-muted); font-size: .75rem; }
+.review__text { font-size: .92rem; line-height: 1.55; white-space: pre-wrap; color: var(--color-text); }
 
 /* ============ Топы: витрина, просмотр, форма ============ */
 .tops { display: flex; flex-direction: column; gap: 20px; }

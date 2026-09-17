@@ -15,7 +15,7 @@ export function Layout(){
                     <NavLink to="/search">Поиск</NavLink>
                     <NavLink to="/pick">Что посмотреть</NavLink>
                     {user && <NavLink to="/watchlist">Мои списки</NavLink>}
-                    {user && <NavLink to="/tops">Мои топы</NavLink>}
+                    {user && <NavLink to="/tops">Топы</NavLink>}
                 </nav>
                 <div className="header__auth">
                     {user?(

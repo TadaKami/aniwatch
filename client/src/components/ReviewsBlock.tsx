@@ -13,11 +13,7 @@ export function ReviewsBlock({ source, id, type }: { source: 'shikimori' | 'tmdb
     const [open, setOpen] = useState(false);
     const [reviews, setReviews] = useState<ReviewDto[] | null>(null);
 
-    // ВАЖНО: сброс при смене тайтла, иначе React переиспользует компонент
-    // и показывает отзывы прошлого тайтла
-    useEffect(() => {
-        setReviews(null);
-    }, [id, source, type]);
+    useEffect(() => { setReviews(null); }, [id, source, type]);
 
     useEffect(() => {
         if (!open || reviews !== null) return;
@@ -28,17 +24,18 @@ export function ReviewsBlock({ source, id, type }: { source: 'shikimori' | 'tmdb
         return () => { cancelled = true; };
     }, [open, reviews, source, id, type]);
 
-    const counts = reviews ? reviews.reduce<Record<string, number>>((acc, r) => {
+    const counts = reviews ? reviews.reduce<Record<string, number>>((a, r) => {
         const k = r.sentiment ?? 'none';
-        acc[k] = (acc[k] ?? 0) + 1;
-        return acc;
+        a[k] = (a[k] ?? 0) + 1;
+        return a;
     }, {}) : {};
 
     return (
-        <div className="card">
+        <div className="card reviews-card">
             <button className="btn-accent" onClick={() => setOpen((v) => !v)}>
-                {open ? 'Скрыть отзывы' : 'Отзывы и комментарии'}
+                {open ? 'Скрыть отзывы' : 'Отзывы'}
             </button>
+
             {open && reviews !== null && reviews.length > 0 && (
                 <div className="review-summary">
                     <span className="review-badge review-badge--all">Все: {reviews.length}</span>
@@ -47,41 +44,38 @@ export function ReviewsBlock({ source, id, type }: { source: 'shikimori' | 'tmdb
                     {counts.negative ? <span className="review-badge review-badge--negative">Отрицательные: {counts.negative}</span> : null}
                 </div>
             )}
+
             {open && reviews === null && <div className="empty">Загружаем…</div>}
+
             {open && reviews !== null && reviews.length === 0 && (
                 <div className="empty">
                     Отзывов пока нет.{' '}
                     {source === 'shikimori' ? (
-                        <a href={`https://shikimori.one/animes/${id}`} target="_blank" rel="noreferrer">
-                           Читать на Shikimori
-                        </a>
+                        <a href={`https://shikimori.one/animes/${id}`} target="_blank" rel="noreferrer">Читать на Shikimori</a>
                     ) : (
-                        <a
-                            href={`https://www.themoviedb.org/${type === 'movie' ? 'movie' : 'tv'}/${id}`}
-                            target="_blank" rel="noreferrer"
-                        >
-                            Читать на TMDB
-                        </a>
+                        <a href={`https://www.themoviedb.org/${type === 'movie' ? 'movie' : 'tv'}/${id}`} target="_blank" rel="noreferrer">Читать на TMDB</a>
                     )}
                 </div>
             )}
+
             {open && reviews !== null && reviews.length > 0 && (
                 <div className="reviews">
                     {reviews.map((r, i) => (
-                        <div key={i} className={'review' + (r.sentiment ? ` review--${r.sentiment}` : '')}>
-                            <div className="review__head">
-                                <b>{r.author}</b>
+                        <article key={i} className={'review' + (r.sentiment ? ` review--${r.sentiment}` : '')}>
+                            <header className="review__head">
+                                <span className="review__author">{r.author}</span>
                                 <span className="review__head-right">
                                     {r.sentiment && (
                                         <span className={`review-badge ${SENTIMENT[r.sentiment].cls}`}>
-                                        {SENTIMENT[r.sentiment].label}
+                                            {SENTIMENT[r.sentiment].label}
                                         </span>
                                     )}
                                     {r.score != null && <span className="review__score">★ {r.score}/10</span>}
+                                    {r.date && <span className="review__date">{r.date}</span>}
                                 </span>
-                            </div>
+                            </header>
                             <p className="review__text">{r.text}</p>
-                        </div>
+                        </article>
                     ))}
                 </div>
             )}

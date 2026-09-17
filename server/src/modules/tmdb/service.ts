@@ -270,9 +270,10 @@ export async function getTmdbReviews(type: 'tv' | 'movie', id: number): Promise<
       const score = typeof r.author_details?.rating === 'number' ? Math.round(r.author_details.rating) : null;
       return {
         author: r.author ?? 'Аноним',
-        text: cleanText(r.content).slice(0, 900),
+        text: cleanText(r.content).slice(0, 1200),
         score,
         sentiment: score == null ? null : score >= 7 ? 'positive' : score >= 4 ? 'neutral' : 'negative',
+        date: typeof r.created_at === 'string' ? r.created_at.slice(0, 10) : null,
       };
     })
     .filter((r) => r.text);
