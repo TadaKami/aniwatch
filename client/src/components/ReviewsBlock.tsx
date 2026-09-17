@@ -48,7 +48,23 @@ export function ReviewsBlock({ source, id, type }: { source: 'shikimori' | 'tmdb
                 </div>
             )}
             {open && reviews === null && <div className="empty">Загружаем…</div>}
-            {open && reviews !== null && reviews.length === 0 && <div className="empty">Отзывов пока нет.</div>}
+            {open && reviews !== null && reviews.length === 0 && (
+                <div className="empty">
+                    Отзывов пока нет.{' '}
+                    {source === 'shikimori' ? (
+                        <a href={`https://shikimori.one/animes/${id}`} target="_blank" rel="noreferrer">
+                           Читать на Shikimori
+                        </a>
+                    ) : (
+                        <a
+                            href={`https://www.themoviedb.org/${type === 'movie' ? 'movie' : 'tv'}/${id}`}
+                            target="_blank" rel="noreferrer"
+                        >
+                            Читать на TMDB
+                        </a>
+                    )}
+                </div>
+            )}
             {open && reviews !== null && reviews.length > 0 && (
                 <div className="reviews">
                     {reviews.map((r, i) => (
