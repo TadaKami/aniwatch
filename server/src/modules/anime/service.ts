@@ -498,7 +498,7 @@ const SENTIMENT_MAP: Array<[RegExp, ReviewDto['sentiment']]> = [
   [/отрицательн/i, 'negative'],
 ];
 
-/** Режем страницу по блокам review, склеиваем шапку с телом, отсекаем сайдбар/пагинацию. */
+/** Режем страницу по блокам review, склеиваем шапку с телом, отсекаем меню/сайдбар/пагинацию. */
 function parseReviewsHtml(html: string): ReviewDto[] {
   // сайдбар и футер идут после списка отзывов — отрезаем их
   const cut = html.search(/Оценки людей|На других сайтах|В списках у людей/i);
@@ -508,16 +508,22 @@ function parseReviewsHtml(html: string): ReviewDto[] {
   const out: ReviewDto[] = [];
   let pendingAuthor: string | null = null;
   let pendingHead = '';
+  let pendingRaw = '';
 
   for (const c of chunks) {
-    const lines = stripTags(c)
+    const rawText = stripTags(c);
+    const lines = rawText
       .split('\n')
       .map((s) => s.trim())
       .filter((l) =>
         l && l !== '>' && l !== 'Да' && l !== 'Нет' &&
-        l !== 'В списке у автора:' && l !== 'Этот отзыв полезен?');
+        l !== 'В списке у автора:' && l !== 'Этот отзыв полезен?' &&
+        !/^(Положительный|Нейтральный|Отрицательный)$/i.test(l));
     const joined = lines.join('\n');
     if (!joined) continue;
+
+    // меню страницы отзывов («Написать отзыв / Все отзывы / 12 / …») — мусор
+    if (/Написать отзыв|Все отзывы/i.test(joined)) continue;
 
     // шапка отзыва: ник + «<<< к отзыву» + голоса + дата
     if (/к отзыву/i.test(joined)) {
@@ -526,17 +532,17 @@ function parseReviewsHtml(html: string): ReviewDto[] {
         .find((t) => t.length >= 2 && !/к отзыву/i.test(t) && !/^&lt;/.test(t) && !/^</.test(t));
       pendingAuthor = anchor ?? null;
       pendingHead = joined;
+      pendingRaw = rawText;
       continue;
     }
 
     // пагинация и огрызки
     if (joined.length < 30) continue;
 
-    // тело отзыва
-    const combined = pendingHead + '\n' + joined;
+    // тело отзыва: тональность берём из сырого текста (бейдж мог быть в шапке или в теле)
     let sentiment: ReviewDto['sentiment'] = null;
     for (const [re, val] of SENTIMENT_MAP) {
-      if (re.test(combined)) { sentiment = val; break; }
+      if (re.test(pendingRaw + '\n' + rawText)) { sentiment = val; break; }
     }
     const dateM = /(\d{1,2}\s[а-яёА-ЯЁ]+\s\d{4})/.exec(pendingHead);
     out.push({
@@ -548,6 +554,7 @@ function parseReviewsHtml(html: string): ReviewDto[] {
     });
     pendingAuthor = null;
     pendingHead = '';
+    pendingRaw = '';
   }
   return out;
 }
