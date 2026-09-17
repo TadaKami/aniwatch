@@ -498,41 +498,64 @@ const SENTIMENT_MAP: Array<[RegExp, ReviewDto['sentiment']]> = [
   [/отрицательн/i, 'negative'],
 ];
 
-/** Режем страницу по никам авторов: каждый отзыв = сегмент от своего ника до следующего ника. */
+/** Разбиваем страницу по блокам class="review…" и склеиваем шапку отзыва с телом. */
 function parseReviewsHtml(html: string): ReviewDto[] {
   // обрезаем секцию комментариев, чтобы не тянуть её как отзывы
   const cut = html.search(/<h2[^>]*>\s*Комментарии/i);
   const page = cut > 0 ? html.slice(0, cut) : html;
 
-  const nickRe = /<a[^>]*class="[^"]*nickname[^"]*"[^>]*>([^<]+)<\/a>/gi;
-  const matches = [...page.matchAll(nickRe)];
+  const chunks = page.split(/<div[^>]*class="[^"]*\breview\b[^"]*"/i).slice(1);
   const out: ReviewDto[] = [];
+  let pendingAuthor: string | null = null;
+  let pendingHead = '';
 
-  for (let i = 0; i < matches.length && out.length < 20; i++) {
-    const start = matches[i].index! + matches[i][0].length;
-    const end = i + 1 < matches.length ? matches[i + 1].index! : page.length;
-    const segment = page.slice(start, end);
-    const author = matches[i][1].trim();
-    if (!author) continue;
-
-    let sentiment: ReviewDto['sentiment'] = null;
-    for (const [re, val] of SENTIMENT_MAP) {
-      if (re.test(segment)) { sentiment = val; break; }
-    }
-
-    const dateMatch = /(\d{1,2}\s[а-яёА-ЯЁ]+\s\d{4})/.exec(segment);
-    let bodyHtml = segment;
-    if (dateMatch) bodyHtml = segment.slice(segment.indexOf(dateMatch[0]) + dateMatch[0].length);
-
-    const text = stripTags(bodyHtml)
+  for (const c of chunks) {
+    const text = stripTags(c)
       .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l && l !== '>' && !/^к отзыву/i.test(l) && !/^Написать отзыв/i.test(l) && !/^Все отзывы/i.test(l))
-      .join('\n')
-      .trim();
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join('\n');
     if (!text) continue;
 
-    out.push({ author, text: text.slice(0, 1200), score: null, sentiment, date: dateMatch ? dateMatch[1] : null });
+    // меню страницы отзывов — мусор
+    if (/Написать отзыв|Все отзывы\s*\d/i.test(text)) continue;
+
+    // шапка отзыва: ник + «<<< к отзыву» + голоса + дата
+    if (/к отзыву/i.test(text)) {
+      const firstLine = text.split('\n')[0] ?? '';
+      const nick = (firstLine.split('<<<')[0] || firstLine).trim();
+      pendingAuthor = nick || null;
+      pendingHead = text;
+      continue;
+    }
+
+    // одиночные «>» и прочий мусор
+    if (text.length < 3) continue;
+
+    // тело отзыва
+    const combined = pendingHead + '\n' + text;
+    let sentiment: ReviewDto['sentiment'] = null;
+    for (const [re, val] of SENTIMENT_MAP) {
+      if (re.test(combined)) { sentiment = val; break; }
+    }
+    const dateM = /(\d{1,2}\s[а-яёА-ЯЁ]+\s\d{4})/.exec(pendingHead);
+    const body = text
+      .split('\n')
+      .filter((l) => l !== '>' && !/^(Положительный|Нейтральный|Отрицательный)$/i.test(l))
+      .join('\n')
+      .trim();
+    if (!body) continue;
+
+    out.push({
+      author: pendingAuthor || 'Аноним',
+      text: body.slice(0, 1200),
+      score: null,
+      sentiment,
+      date: dateM ? dateM[1] : null,
+    });
+    pendingAuthor = null;
+    pendingHead = '';
+    if (out.length >= 20) break;
   }
   return out;
 }
