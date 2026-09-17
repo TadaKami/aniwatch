@@ -159,6 +159,7 @@ export interface ReviewDto {
     text: string;
     score: number | null;
     sentiment: 'positive' | 'neutral' | 'negative' | null;
+    date?: string | null;
 }
 
 export interface TopItemDto {
