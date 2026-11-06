@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import type { AnimeDetailsResponse, WatchStatus, NormalizedAnime, RelatedAnime } from '../types/dto';
 import { NotesRating } from '../components/NotesRating';
 import { ReviewsBlock } from '../components/ReviewsBlock';
+import { TitleMiniGame } from '../components/TitleMiniGame';
 
 const STATUS_LABELS: Record<WatchStatus, string> = {
     WANT_TO_WATCH: 'Буду смотреть',
@@ -29,6 +30,7 @@ export function AnimeDetailPage(){
     const [status, setStatus] = useState<WatchStatus>('WANT_TO_WATCH');
     const [epInfo, setEpInfo] = useState<Map<number, { russian: string | null; name: string | null }>>(new Map());
     const [heroCover, setHeroCover] = useState<string>('');
+    const [activeTab, setActiveTab] = useState<'overview' | 'game'>('overview');
 
     const animeId = Number(id);
     async function refresh() {
@@ -73,6 +75,7 @@ export function AnimeDetailPage(){
 
     async function changeStatus(s: WatchStatus) {
         setStatus(s);
+        if (s !== 'WATCHED') setActiveTab('overview');
         if (data?.watchItem) {
             try {
                 await watchlistApi.update(data.watchItem.id, { status: s });
@@ -202,6 +205,22 @@ export function AnimeDetailPage(){
             {error && <div className="form-error">{error}</div>}
             {data && (
                 <>
+                    {status === 'WATCHED' && (
+                        <div className="detail-tabs" role="tablist" aria-label="Разделы тайтла">
+                            <button role="tab" aria-selected={activeTab === 'overview'} className={activeTab === 'overview' ? 'detail-tabs__tab detail-tabs__tab--active' : 'detail-tabs__tab'} onClick={() => setActiveTab('overview')}>Обзор</button>
+                            <button role="tab" aria-selected={activeTab === 'game'} className={activeTab === 'game' ? 'detail-tabs__tab detail-tabs__tab--active' : 'detail-tabs__tab'} onClick={() => setActiveTab('game')}>Мини-игра</button>
+                        </div>
+                    )}
+                    {status === 'WATCHED' && activeTab === 'game' ? (
+                        <TitleMiniGame
+                            title={data.anime.russian ?? data.anime.name}
+                            year={data.anime.seasonYear}
+                            genres={data.anime.genres.map((g) => g.russian ?? g.name)}
+                            episodeCount={data.airedEpisodeCount || null}
+                            format={data.anime.kind ?? 'Аниме'}
+                        />
+                    ) : (
+                    <>
                     <div className="detail__hero card">
                         <img src={heroCover || NO_COVER} alt="" className="detail__cover"
                             onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }} />
@@ -269,6 +288,8 @@ export function AnimeDetailPage(){
                                 })}
                             </div>
                         </div>
+                    )}
+                    </>
                     )}
                 </>
             )}

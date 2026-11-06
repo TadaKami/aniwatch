@@ -8,6 +8,7 @@ import type { NormalizedAnime, TmdbFullDetails, TmdbSeasonEpisode, WatchStatus }
 import { NotesRating } from '../components/NotesRating';
 import { ReviewsBlock } from '../components/ReviewsBlock';
 import { CoverImage } from '../components/CoverImage';
+import { TitleMiniGame } from '../components/TitleMiniGame';
 
 const STATUS_LABELS: Record<WatchStatus, string> = {
     WANT_TO_WATCH: 'Буду смотреть',
@@ -29,6 +30,7 @@ export function TmdbDetailPage() {
     const [added, setAdded] = useState(false);
     const [season, setSeason] = useState(1);
     const [eps, setEps] = useState<TmdbSeasonEpisode[]>([]);
+    const [activeTab, setActiveTab] = useState<'overview' | 'game'>('overview');
 
     const numId = Number(id);
 
@@ -68,6 +70,7 @@ export function TmdbDetailPage() {
 
     async function changeStatus(s: WatchStatus) {
         setStatus(s);
+        if (s !== 'WATCHED') setActiveTab('overview');
         // тайтла ещё нет в списке — статус применится при добавлении
         if (!data?.watchItem) return;
         try {
@@ -107,6 +110,22 @@ export function TmdbDetailPage() {
             {error && <div className="form-error">{error}</div>}
             {data && (
                 <>
+                    {status === 'WATCHED' && (
+                        <div className="detail-tabs" role="tablist" aria-label="Разделы тайтла">
+                            <button role="tab" aria-selected={activeTab === 'overview'} className={activeTab === 'overview' ? 'detail-tabs__tab detail-tabs__tab--active' : 'detail-tabs__tab'} onClick={() => setActiveTab('overview')}>Обзор</button>
+                            <button role="tab" aria-selected={activeTab === 'game'} className={activeTab === 'game' ? 'detail-tabs__tab detail-tabs__tab--active' : 'detail-tabs__tab'} onClick={() => setActiveTab('game')}>Мини-игра</button>
+                        </div>
+                    )}
+                    {status === 'WATCHED' && activeTab === 'game' ? (
+                        <TitleMiniGame
+                            title={data.russian ?? data.name}
+                            year={data.seasonYear}
+                            genres={data.genres.map((g) => g.russian ?? g.name)}
+                            episodeCount={totalEpisodes || null}
+                            format={data.contentType === 'tv' ? 'Сериал' : 'Фильм'}
+                        />
+                    ) : (
+                    <>
                     <div className="detail__hero card">
                         <CoverImage src={data.image.preview} alt="" className="detail__cover" />
                         <div className="detail__info">
@@ -173,6 +192,8 @@ export function TmdbDetailPage() {
                                 ))}
                             </div>
                         </div>
+                    )}
+                    </>
                     )}
                 </>
             )}
