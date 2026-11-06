@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.js';
 import { StatsPanel } from './DashboardPage.js';
 import { Link } from 'react-router-dom';
 import type { NextItem } from '../types/dto.js';
+import { CoverImage } from '../components/CoverImage';
 
 function downscale(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -85,7 +86,7 @@ function NextPanel() {
                 {filtered.map((it) => (
                     <div key={`${it.source}:${it.id}`} className="anime-card card">
                         <Link to={it.source === 'tmdb' ? `/title/tmdb/${it.id}?type=${it.contentType}` : `/anime/${it.id}`}>
-                            {it.image && <img className="anime-card__cover" src={it.image.preview} alt="" loading="lazy" />}
+                            <CoverImage className="anime-card__cover" src={it.image?.preview} alt="" loading="lazy" />
                             <div className="anime-card__title">{it.russian ?? it.name}</div>
                         </Link>
                         <div className="anime-card__meta">

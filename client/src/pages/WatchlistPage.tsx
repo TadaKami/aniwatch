@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
 import type { WatchlistItem, WatchStatus } from '../types/dto';
+import { CoverImage } from '../components/CoverImage';
 
 const GROUPS: { status: WatchStatus; label: string }[] = [
     { status: 'WATCHING', label: 'Смотрю' },
@@ -57,7 +58,7 @@ export function WatchlistPage(){
                                 <div key={it.id} className="anime-card card">
                                     <Link to={it.anime.source === 'tmdb' ? `/title/tmdb/${it.anime.shikimoriId}?type=${it.anime.contentType}` : `/anime/${it.anime.shikimoriId}`}>
                                         <div className="anime-card__poster">
-                                            {it.anime.coverImage && <img src={it.anime.coverImage} alt="" />}
+                                            <CoverImage src={it.anime.coverImage} alt="" />
                                             <span className={'type-badge' + (it.anime.contentType === 'tv' ? ' type-badge--tv' : it.anime.contentType === 'movie' ? ' type-badge--movie' : '')}>
                                                 {it.anime.contentType === 'anime' ? 'Аниме' : it.anime.contentType === 'tv' ? 'Сериал' : 'Фильм'}
                                             </span>

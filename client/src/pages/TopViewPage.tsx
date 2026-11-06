@@ -4,6 +4,7 @@ import { ApiError } from '../api/client';
 import { topsApi } from '../api/tops';
 import { useAuth } from '../context/AuthContext';
 import type { TopDto } from '../types/dto';
+import { CoverImage } from '../components/CoverImage';
 
 const CT_LABELS: Record<string, string> = { any: 'Все', anime: 'Аниме', tv: 'Сериалы', movie: 'Фильмы' };
 
@@ -43,7 +44,7 @@ export function TopViewPage() {
                     <div key={it.id} className="anime-card card">
                         <Link to={it.source === 'tmdb' ? `/title/tmdb/${it.shikimoriId}?type=${it.contentType}` : `/anime/${it.shikimoriId}`}>
                             <div className="anime-card__poster">
-                                {it.coverImage && <img src={it.coverImage} alt="" />}
+                                <CoverImage src={it.coverImage} alt="" />
                                 <span className="top-item__pos">#{it.position}</span>
                             </div>
                             <div className="anime-card__title">{it.russian ?? it.name}</div>

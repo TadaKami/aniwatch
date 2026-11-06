@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { topsApi } from '../api/tops';
 import { useAuth } from '../context/AuthContext';
 import type { TopDto } from '../types/dto';
+import { CoverImage } from '../components/CoverImage';
 
 const CT_LABELS: Record<string, string> = { any: 'Все', anime: 'Аниме', tv: 'Сериалы', movie: 'Фильмы' };
 
@@ -31,7 +32,7 @@ export function TopsPage() {
                         <div className="anime-card__meta">автор: {t.ownerName} · {t.items.length} тайтлов</div>
                         {t.description && <p className="top-card__desc">{t.description}</p>}
                         <div className="top-card__posters">
-                            {t.items.slice(0, 5).map((i) => i.coverImage ? <img key={i.id} src={i.coverImage} alt="" /> : null)}
+                            {t.items.slice(0, 5).map((i) => <CoverImage key={i.id} src={i.coverImage} alt="" />)}
                         </div>
                     </Link>
                 ))}

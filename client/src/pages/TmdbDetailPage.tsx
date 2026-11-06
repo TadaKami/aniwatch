@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import type { NormalizedAnime, TmdbFullDetails, TmdbSeasonEpisode, WatchStatus } from '../types/dto';
 import { NotesRating } from '../components/NotesRating';
 import { ReviewsBlock } from '../components/ReviewsBlock';
+import { CoverImage } from '../components/CoverImage';
 
 const STATUS_LABELS: Record<WatchStatus, string> = {
     WANT_TO_WATCH: 'Буду смотреть',
@@ -113,7 +114,7 @@ export function TmdbDetailPage() {
             {data && (
                 <>
                     <div className="detail__hero card">
-                        {data.image.preview && <img src={data.image.preview} alt="" className="detail__cover" />}
+                        <CoverImage src={data.image.preview} alt="" className="detail__cover" />
                         <div className="detail__info">
                             <h2>{data.russian ?? data.name}</h2>
                             <div className="detail__orig">{data.name}</div>
@@ -197,8 +198,7 @@ function TmdbRecs({ type, id }: { type: 'tv' | 'movie'; id: number }) {
             <div className="recs-row">
                 {recs.map((r) => (
                     <Link key={r.id} to={`/title/tmdb/${r.id}?type=${r.contentType}`} className="rec-card">
-                        <img className="rec-card__cover" src={r.image.preview || NO_COVER} alt="" loading="lazy"
-                            onError={(e) => { if (e.currentTarget.src !== NO_COVER) e.currentTarget.src = NO_COVER; }} />
+                        <CoverImage className="rec-card__cover" src={r.image.preview} alt="" loading="lazy" />
                         <div className="rec-card__title">{r.russian ?? r.name}</div>
                     </Link>
                 ))}

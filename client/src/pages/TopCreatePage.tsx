@@ -5,6 +5,7 @@ import { topsApi } from '../api/tops';
 import { watchlistApi } from '../api/watchlist';
 import { useAuth } from '../context/AuthContext';
 import type { WatchlistItem } from '../types/dto';
+import { CoverImage } from '../components/CoverImage';
 
 const CT_LABELS: Record<string, string> = { any: 'Все', anime: 'Аниме', tv: 'Сериалы', movie: 'Фильмы' };
 
@@ -66,7 +67,7 @@ export function TopCreatePage() {
                         <label className="top-pick">
                             <input type="checkbox" checked={!!checked[w.anime.id]}
                                 onChange={(e) => setChecked((c) => ({ ...c, [w.anime.id]: e.target.checked }))} />
-                            {w.anime.coverImage && <img src={w.anime.coverImage} alt="" className="top-pick__cover" />}
+                            <CoverImage src={w.anime.coverImage} alt="" className="top-pick__cover" />
                             <div>
                                 <div className="anime-card__title">{w.anime.russian ?? w.anime.name}</div>
                                 <div className="anime-card__meta">★ {w.anime.rating}</div>

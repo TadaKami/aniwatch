@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import { watchlistApi } from '../api/watchlist.js';
 import { useAuth } from '../context/AuthContext.js';
 import type { GenreStat, StatsOverview } from '../types/dto.js';
+import { CoverImage } from '../components/CoverImage.js';
 
 export function StatsPanel() {
     const { user } = useAuth();
@@ -47,7 +48,7 @@ export function StatsPanel() {
                                             to={w.source === 'tmdb' ? `/title/tmdb/${w.shikimoriId}?type=${w.contentType}` : `/anime/${w.shikimoriId}`}
                                             className="watching-row__link"
                                         >
-                                            {w.coverImage && <img src={w.coverImage} alt="" className="watching-row__cover" />}
+                                            <CoverImage src={w.coverImage} alt="" className="watching-row__cover" />
                                             <div className="watching-row__info">
                                                 <div className="watching-row__title">{w.russian ?? w.name}</div>
                                                 <div className="bar-row__track">
